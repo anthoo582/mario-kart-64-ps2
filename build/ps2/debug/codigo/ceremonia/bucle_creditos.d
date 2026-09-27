@@ -26,8 +26,8 @@ build/ps2/debug/codigo/ceremonia/bucle_creditos.o: \
  incluir/graficos/cielo_y_pantalla_dividida.h \
  incluir/menus/elementos_menu.h incluir/datos/texturas.h \
  incluir/datos/texturas/segmento_2.h \
- incluir/datos/texturas/menus_y_personajes.h \
- incluir/carrera/inicio_hud_y_objetos.h \
+ incluir/datos/texturas/menus_y_personajes.h incluir/menus/menus.h \
+ incluir/libultra/PR/os.h incluir/carrera/inicio_hud_y_objetos.h \
  incluir/carrera/actualizar_objetos.h incluir/carrera/animacion.h \
  incluir/juego/objetos.h incluir/juego/curvas.h \
  incluir/ceremonia/ceremonia_y_creditos.h \
@@ -86,6 +86,8 @@ incluir/menus/elementos_menu.h:
 incluir/datos/texturas.h:
 incluir/datos/texturas/segmento_2.h:
 incluir/datos/texturas/menus_y_personajes.h:
+incluir/menus/menus.h:
+incluir/libultra/PR/os.h:
 incluir/carrera/inicio_hud_y_objetos.h:
 incluir/carrera/actualizar_objetos.h:
 incluir/carrera/animacion.h:

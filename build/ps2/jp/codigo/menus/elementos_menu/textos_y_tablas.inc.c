@@ -752,6 +752,11 @@ TexturaMenu* dato_800E7DC4[] = {
     dato_020051A0,
 };
 
+#ifdef AVOID_UB
+AnimacionMk* dato_800E7E14[] = {
+    dato_020020BC, dato_020020CC, dato_020020DC, dato_020020DC, dato_020020EC, dato_020020FC, dato_0200210C, dato_0200210C,
+};
+#else
 AnimacionMk* dato_800E7E14[] = {
     dato_020020BC,
     dato_020020CC,
@@ -761,6 +766,7 @@ AnimacionMk* dato_800E7E14[] = {
 AnimacionMk* dato_800E7E20[] = {
     dato_020020DC, dato_020020EC, dato_020020FC, dato_0200210C, dato_0200210C,
 };
+#endif
 
 AnimacionMk* dato_800E7E34[] = {
     dato_02001E64, dato_02001E74, dato_02001E84, dato_02001E94, dato_02001EA4, dato_02001EB4, dato_02001EC4,
