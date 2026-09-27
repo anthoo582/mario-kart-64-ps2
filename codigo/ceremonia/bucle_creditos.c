@@ -16,6 +16,7 @@
 #include "ceremonia/carga_ceremonia.h"
 #include "graficos/cielo_y_pantalla_dividida.h"
 #include "menus/elementos_menu.h"
+#include "menus/menus.h"
 #include "carrera/inicio_hud_y_objetos.h"
 #include "carrera/preparacion_carrera.h"
 #include "ceremonia/ceremonia_y_creditos.h"
@@ -100,6 +101,14 @@ void bucle_creditos(void) {
             estado_juego = 255;
         }
     } else {
+#ifdef TARGET_PS2
+        if ((dato_80286A04[dato_800DC5E4].desconocido0 == 2) && (mando_uno->boton_pulsado & (START_BUTTON | A_BUTTON))) {
+            dato_800DC5E4 = 0;
+            seleccion_menu = MENU_INICIO;
+            siguiente_estado_juego = MENU_INICIO_DESDE_ABANDONAR;
+            return;
+        }
+#endif
 
         dato_802874FC = 0;
         funcion_80283648(camara);

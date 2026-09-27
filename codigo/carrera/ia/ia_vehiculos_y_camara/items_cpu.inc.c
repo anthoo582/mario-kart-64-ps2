@@ -759,6 +759,47 @@ void funcion_8001BE78(void) {
     }
 }
 
+#ifdef TARGET_PS2
+static s16 espera_podio_total[4];
+static s16 espera_podio_cerca[4];
+
+static void asegurar_llegada_podio(s32 id_jugador, Jugador* jugador) {
+    f32 objetivo_x = dato_80163418[id_jugador];
+    f32 objetivo_z = dato_80163438[id_jugador];
+    f32 altura;
+
+    if (jugador->type & SECUENCIA_INICIO_JUGADOR) {
+        return;
+    }
+    if (espera_podio_total[id_jugador] < 0x7FFF) {
+        espera_podio_total[id_jugador]++;
+    }
+    if ((dato_80163410[id_jugador] >= 3) && (espera_podio_cerca[id_jugador] < 0x7FFF)) {
+        espera_podio_cerca[id_jugador]++;
+    }
+    altura = obtener_altura_superficie(objetivo_x, 2000.0f, objetivo_z);
+    if ((jugador->pos[1] > (altura - 100.0f)) && (espera_podio_total[id_jugador] < 1800) &&
+        (espera_podio_cerca[id_jugador] < ((dato_80163410[id_jugador] >= 4) ? 90 : 450))) {
+        return;
+    }
+    jugador->pos[0] = objetivo_x;
+    jugador->pos[1] = altura + jugador->tamanio_caja_envolvente;
+    jugador->pos[2] = objetivo_z;
+    jugador->pos_viejo[0] = jugador->pos[0];
+    jugador->pos_viejo[1] = jugador->pos[1];
+    jugador->pos_viejo[2] = jugador->pos[2];
+    jugador->velocidad[0] = 0.0f;
+    jugador->velocidad[1] = 0.0f;
+    jugador->velocidad[2] = 0.0f;
+    jugador->speed = 0.0f;
+    jugador->actual_rapidez = 0.0f;
+    jugador->velocidad_salto_kart = 0.0f;
+    jugador->desconocido_08C = 0.0f;
+    jugador->efectos &= ~EFECTO_EN_EL_AIRE;
+    dato_80163410[id_jugador] = 4;
+}
+#endif
+
 void funcion_8001C05C(void) {
     inicializar_carrera_segmento();
     id_circuito_actual = CEREMONIA_PREMIO_CIRCUITO;
@@ -766,6 +807,16 @@ void funcion_8001C05C(void) {
     dato_8016347E = 0;
     dato_80163480 = 0;
     dato_80163484 = 0;
+#ifdef TARGET_PS2
+    {
+        s32 i;
+
+        for (i = 0; i < 4; i++) {
+            espera_podio_total[i] = 0;
+            espera_podio_cerca[i] = 0;
+        }
+    }
+#endif
     inicializar_punto_camino_circuito();
     funcion_80014DE4(0);
     funcion_8001BE78();
@@ -807,6 +858,9 @@ void funcion_8001C14C(void) {
 
         temporal_s0 = &jugador_uno[id_jugador];
         actualizar_jugador(id_jugador);
+#ifdef TARGET_PS2
+        asegurar_llegada_podio(id_jugador, temporal_s0);
+#endif
         if (!(temporal_s0->type & SECUENCIA_INICIO_JUGADOR)) {
             temporal_f0 = dato_80163418[id_jugador] - temporal_s0->pos[0];
             temporal_f2 = dato_80163438[id_jugador] - temporal_s0->pos[2];

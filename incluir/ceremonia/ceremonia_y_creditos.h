@@ -85,6 +85,8 @@ struct struct_80286A04 {
     u16 desconocido_c;
 };
 
+extern struct struct_80286A04 dato_80286A04[];
+
 struct PuntoSplineCinematica {
     s8 index;
     u8 speed;

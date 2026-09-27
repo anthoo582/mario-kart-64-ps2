@@ -224,7 +224,7 @@ void gs_inicializar(void)
     s_gs->ZBuffering = GS_SETTING_ON;
     s_gs->DoubleBuffering = GS_SETTING_ON;
     s_gs->PrimAlphaEnable = GS_SETTING_ON;
-    s_gs->Dithering = GS_SETTING_ON;
+    s_gs->Dithering = GS_SETTING_OFF;
 
     dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC, D_CTRL_STD_OFF, D_CTRL_RCYC_8,
                 1 << DMA_CHANNEL_GIF);
@@ -419,7 +419,7 @@ void empezar_paquete_gs(int paquete, int buffer, int banderas)
     ad(TIJERA_GSR_1, GS_SETREG_SCISSOR(0, GS_ANCHO - 1, 0, GS_ALTO - 1));
     ad(GSR_PRMODECONT, 1);
     ad(GSR_COLCLAMP, 1);
-    ad(GSR_DTHE, 1);
+    ad(GSR_DTHE, 0);
     ad(GSR_TEXA, GS_SETREG_TEXA(0, 0, 0x80));
     ad(GSR_FBA_1, 0);
 }

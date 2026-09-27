@@ -89,7 +89,7 @@ WARNINGS := -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-
             -Wno-address-of-packed-member -Wno-format -Wno-parentheses
 
 OPT      ?= -O2
-CFLAGS   := $(OPT) -G0 -fno-strict-aliasing -fno-common -fwrapv -ffast-math $(WARNINGS) $(DEFINES) $(INCLUDES)
+CFLAGS   := $(OPT) -G0 -fno-strict-aliasing -fno-common -fwrapv -ffast-math -fno-reciprocal-math $(WARNINGS) $(DEFINES) $(INCLUDES)
 DATAFLAGS := -O1 -G0 -fno-toplevel-reorder -fno-common -fno-zero-initialized-in-bss -w $(DEFINES) $(INCLUDES)
 ASFLAGS  := -G0 -msingle-float -march=r5900 -I incluir/juego -I . -I $(BUILD) --defsym VERSION_US=1
 

@@ -764,7 +764,11 @@ extern TexturaMenu* dato_800E7D54[];
 extern TexturaMenu* dato_800E7D74[];
 extern TexturaMenu* dato_800E7DC4[];
 extern AnimacionMk* dato_800E7E14[];
+#ifdef AVOID_UB
+#define dato_800E7E20 (&dato_800E7E14[3])
+#else
 extern AnimacionMk* dato_800E7E20[];
+#endif
 extern AnimacionMk* dato_800E7E34[];
 extern TexturaMenu* lut_textura_glifo[];
 extern TexturaMenu* dato_800E7FF0[];
