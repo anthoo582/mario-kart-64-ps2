@@ -774,6 +774,52 @@ AnimacionMk* dato_800E7E34[] = {
     dato_02001F44, dato_02001F54, dato_02001F64, dato_02001F74, dato_02001F84, dato_02001F94,
 };
 
+#ifdef AVOID_UB
+/* En la N64 estas tablas van seguidas y el texto las indexa como una sola: glifos 0..235
+   (los caracteres de dos bytes, como la raya larga, caen en las tablas de detras). */
+TexturaMenu* lut_textura_glifo[] = {
+    seg_2_textura_fuente_letra_a, seg_2_textura_fuente_letra_b, seg_2_textura_fuente_letra_c, seg_2_textura_fuente_letra_d, seg_2_textura_fuente_letra_e, seg_2_textura_fuente_letra_f,
+    seg_2_textura_fuente_letra_g, seg_2_textura_fuente_letra_h, seg_2_textura_fuente_letra_i, seg_2_textura_fuente_letra_j, seg_2_textura_fuente_letra_k, seg_2_textura_fuente_letra_l,
+    seg_2_textura_fuente_letra_m, seg_2_textura_fuente_letra_n, seg_2_textura_fuente_letra_o, seg_2_textura_fuente_letra_p, seg_2_textura_fuente_letra_q, seg_2_textura_fuente_letra_r,
+    seg_2_textura_fuente_letra_s, seg_2_textura_fuente_letra_t, seg_2_textura_fuente_letra_u, seg_2_textura_fuente_letra_v, seg_2_textura_fuente_letra_w, seg_2_textura_fuente_letra_x,
+    seg_2_textura_fuente_letra_y, seg_2_textura_fuente_letra_z, seg_2_textura_fuente_signo_exclamacion, seg_2_textura_fuente_menos, seg_2_textura_fuente_pregunta_marcar, seg_2_textura_fuente_simple_comilla,
+    seg_2_textura_fuente_vacio, seg_2_textura_fuente_punto, seg_2_textura_fuente_numero_cero, seg_2_textura_fuente_numero_uno, seg_2_textura_fuente_numero_dos, seg_2_textura_fuente_numero_tres,
+    seg_2_textura_fuente_numero_cuatro, seg_2_textura_fuente_numero_cinco, seg_2_textura_fuente_numero_seis, seg_2_textura_fuente_numero_siete, seg_2_textura_fuente_numero_ocho, seg_2_textura_fuente_numero_nueve,
+    seg_2_textura_fuente_doble_comilla, seg_2_textura_fuente_cuatro_dote, seg_2_textura_fuente_mas, seg_2_textura_fuente_cc, seg_2_textura_fuente_coma, seg_2_textura_fuente_vacio,
+    dato_02002824, dato_0200284C, dato_02002874, dato_0200289C, dato_020028C4, dato_020028EC,
+    dato_02002F54, dato_02002914, dato_02002F7C, dato_0200293C, dato_02002FA4, dato_02002964,
+    dato_02002FCC, dato_0200298C, dato_02002FF4, dato_020029B4, dato_0200301C, dato_020029DC,
+    dato_02003044, dato_02002A04, dato_0200306C, dato_02002A2C, dato_02003094, dato_02002A54,
+    dato_020030BC, dato_02002A7C, dato_020030E4, dato_02002AA4, dato_0200310C, dato_020033B4,
+    dato_02002ACC, dato_02003134, dato_02002AF4, dato_0200315C, dato_02002B1C, dato_02003184,
+    dato_02002B44, dato_02002B6C, dato_02002B94, dato_02002BBC, dato_02002BE4, dato_02002C0C,
+    dato_020031AC, dato_02003274, dato_02002C34, dato_020031D4, dato_0200329C, dato_02002C5C,
+    dato_020031FC, dato_020032C4, dato_02002C84, dato_02003224, dato_020032EC, dato_02002CAC,
+    dato_0200324C, dato_02003314, dato_02002CD4, dato_02002CFC, dato_02002D24, dato_02002D4C,
+    dato_02002D74, dato_0200333C, dato_02002D9C, dato_02003364, dato_02002DC4, dato_0200338C,
+    dato_02002DEC, dato_02002E14, dato_02002E3C, dato_02002E64, dato_02002E8C, dato_02002EB4,
+    dato_02002EDC, dato_02002F04, dato_02002F2C, dato_020033DC, dato_02003404, dato_0200342C,
+    dato_02003454, dato_0200347C, dato_020034A4, dato_020034CC, dato_020034F4, dato_0200351C,
+    dato_02003544, dato_0200356C, dato_02003BD4, dato_02003594, dato_02003BFC, dato_020035BC,
+    dato_02003C24, dato_020035E4, dato_02003C4C, dato_0200360C, dato_02003C74, dato_02003634,
+    dato_02003C9C, dato_0200365C, dato_02003CC4, dato_02003684, dato_02003CEC, dato_020036AC,
+    dato_02003D14, dato_020036D4, dato_02003D3C, dato_020036FC, dato_02003D64, dato_02003724,
+    dato_02003D8C, dato_02004034, dato_0200374C, dato_02003DB4, dato_02003774, dato_02003DDC,
+    dato_0200379C, dato_02003E04, dato_020037C4, dato_020037EC, dato_02003814, dato_0200383C,
+    dato_02003864, dato_0200388C, dato_02003E2C, dato_02003EF4, dato_020038B4, dato_02003E54,
+    dato_02003F1C, dato_020038DC, dato_02003E7C, dato_02003F44, dato_02003904, dato_02003EA4,
+    dato_02003F6C, dato_0200392C, dato_02003ECC, dato_02003F94, dato_02003954, dato_0200397C,
+    dato_020039A4, dato_020039CC, dato_020039F4, dato_02003FBC, dato_02003A1C, dato_02003FE4,
+    dato_02003A44, dato_0200400C, dato_02003A6C, dato_02003A94, dato_02003ABC, dato_02003AE4,
+    dato_02003B0C, dato_02003B34, dato_02003B5C, dato_02003B84, dato_02003BAC, dato_0200405C,
+    dato_02004084, dato_020040AC, dato_020040D4, dato_020040FC, dato_020043CC, dato_02004444,
+    dato_0200437C, dato_020043F4, dato_02004124, dato_0200414C, dato_02004174, dato_0200419C,
+    dato_020041C4, dato_020041EC, dato_02004214, dato_0200423C, dato_02004264, dato_0200428C,
+    dato_020042B4, dato_020042DC, dato_02004354, dato_020043A4, dato_0200441C, dato_0200446C,
+    dato_02004494, dato_020044BC, dato_02004304, dato_0200432C, dato_020044E4, dato_0200450C,
+    seg_2_textura_fuente_coma, dato_0200455C,
+};
+#else
 TexturaMenu* lut_textura_glifo[] = {
     seg_2_textura_fuente_letra_a,
     seg_2_textura_fuente_letra_b,
@@ -904,3 +950,4 @@ TexturaMenu* dato_800E81E4[] = {
     dato_020041C4, dato_020041EC, dato_02004214, dato_0200423C, dato_02004264, dato_0200428C, dato_020042B4, dato_020042DC, dato_02004354,
     dato_020043A4, dato_0200441C, dato_0200446C, dato_02004494, dato_020044BC, dato_02004304, dato_0200432C, dato_020044E4, dato_0200450C,
 };
+#endif

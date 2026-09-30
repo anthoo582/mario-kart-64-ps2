@@ -1,8 +1,10 @@
 build/ps2/codigo/sistema/arranque_ps2.o: codigo/sistema/arranque_ps2.c \
+ /usr/local/ps2dev/ps2sdk/ee/include/delaythread.h \
+ /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
+ /usr/local/ps2dev/ps2sdk/ee/include/timer.h \
  /usr/local/ps2dev/ps2sdk/ee/include/iopcontrol.h \
  /usr/local/ps2dev/ps2sdk/ee/include/kernel.h \
  /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
  /usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h \
  /usr/local/ps2dev/ps2sdk/ee/include/loadfile.h \
  /usr/local/ps2dev/ps2sdk/common/include/loadfile-common.h \
@@ -27,10 +29,12 @@ build/ps2/codigo/sistema/arranque_ps2.o: codigo/sistema/arranque_ps2.c \
  incluir/libultra/PR/libultra.h incluir/sistema/sistema_ps2.h \
  incluir/graficos/interprete_f3dex.h incluir/audio/salida_audio.h \
  incluir/sistema/guardado_ps2.h incluir/sistema/cronometro_fases.h
+/usr/local/ps2dev/ps2sdk/ee/include/delaythread.h:
+/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
+/usr/local/ps2dev/ps2sdk/ee/include/timer.h:
 /usr/local/ps2dev/ps2sdk/ee/include/iopcontrol.h:
 /usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
 /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
 /usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h:
 /usr/local/ps2dev/ps2sdk/ee/include/loadfile.h:
 /usr/local/ps2dev/ps2sdk/common/include/loadfile-common.h:

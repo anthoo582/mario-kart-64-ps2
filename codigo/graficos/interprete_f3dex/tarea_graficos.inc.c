@@ -195,6 +195,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
         redirigir_paquete_gs(REAL_PAQUETE_GS, s_disp ^ 1);
         mostrar_paquete_gs(REAL_PAQUETE_GS);
     }
+    cambios_modo_interp += (ultimo_usado_interp != 0) != (interp_planned != 0);
     ultimo_usado_interp = interp_planned;
 #ifdef SMK64_MEDIDOR
     medidor_fin_frame();
@@ -317,8 +318,10 @@ void ejecutar_tarea_graficos(Gfx *dl)
                     (unsigned) (subidas_ci / 120), (unsigned) (golpes_ci / 120), (unsigned) estadisticas_tmem.decodificaciones);
             subidas_ci = golpes_ci = 0;
         }
-        rend_registro_ps2("imagenes: %u de 1 retrazo, %u de 2, %u de 3, %u de 4 o mas", (unsigned) estadisticas_gs.mantenido[0],
-                (unsigned) estadisticas_gs.mantenido[1], (unsigned) estadisticas_gs.mantenido[2], (unsigned) estadisticas_gs.mantenido[3]);
+        rend_registro_ps2("imagenes: %u de 1 retrazo, %u de 2, %u de 3, %u de 4 o mas; cambios 60/30 %u",
+                (unsigned) estadisticas_gs.mantenido[0], (unsigned) estadisticas_gs.mantenido[1],
+                (unsigned) estadisticas_gs.mantenido[2], (unsigned) estadisticas_gs.mantenido[3], (unsigned) cambios_modo_interp);
+        cambios_modo_interp = 0;
         memset(estadisticas_gs.mantenido, 0, sizeof(estadisticas_gs.mantenido));
         suma_periodos = 0;
         rend_registro_ps2("frame %u estado %d: tris %u rect %u subidas %u (%u KB) cache %u/%u paquete %u KB", (unsigned) s_frame,
@@ -364,6 +367,13 @@ void ejecutar_tarea_graficos(Gfx *dl)
     }
 #endif
 
+#ifdef SMK64_DEV
+    if (captura_pendiente_guion() != NULL) {
+        gs_esperar_cambio_buffer();
+        volcar_frame(captura_pendiente_guion(), gs_pantalla_a_ct32() / 256, GS_ANCHO, GS_ALTO, GS_PSM_CT32);
+        captura_hecha_guion();
+    }
+#endif
 #ifdef SMK64_DEV_FRAMEDUMP
     /* Volcados del framebuffer */
     if (s_frame == 60 || s_frame == 200 || s_frame == 400 || s_frame == 700 || (s_frame % 1500) == 0) {

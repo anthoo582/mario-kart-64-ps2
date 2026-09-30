@@ -40,6 +40,8 @@ typedef struct {
     u64 fogcol;
     u32 prim;   /* bits de PRIM salvo el tipo: IIP, TME, FGE, ABE, FST */
     int texturizado;
+    /* DTHE: el framebuffer es de 16 bits; sin tramado los degradados salen en bandas. */
+    int dither;
 } EstadoGs;
 
 void gs_inicializar(void);
@@ -80,6 +82,10 @@ u32 gs_vram_fin_texturas(void);
 #ifdef SMK64_MEDIDOR
 /* Zona fija de la VRAM para el panel del medidor (src/debug). */
 u32 gs_vram_medidor(void);
+#endif
+
+#ifdef SMK64_DEV
+u32 gs_pantalla_a_ct32(void);
 #endif
 
 void gs_copiar_desde_pantalla(float x, float y, float w, float h, u32 dst_vram, int dw, int dh);

@@ -453,6 +453,11 @@ static int agregar_posible_pasada(void)
     return ccx[i].agregar;
 }
 
+/* Suavizado de texturas: bilineal donde el N64 filtra (G_TF_BILERP). 0: vecino mas cercano. */
+#ifndef FILTRADO_TEXTURAS
+#define FILTRADO_TEXTURAS 1
+#endif
+
 #define ZMODE(l)  (((l) >> 10) & 3)
 
 /* Generaciones de las caches por vertice (VerticeRsp) */
@@ -837,7 +842,7 @@ static void construir_impl_estado(int tile, int es_rect)
     st->tijera = es_rect ? reg_tijera() : tri_reg_tijera();
     st->fogcol = (u64) St.fogc[0] | ((u64) St.fogc[1] << 8) | ((u64) St.fogc[2] << 16);
 
-    filter = ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
+    filter = FILTRADO_TEXTURAS && ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
     St.valido_tex = 0;
     agregar_dividir = 0;
     if (prim_texturizado) {
@@ -875,7 +880,7 @@ static void construir_impl_estado(int tile, int es_rect)
             st->clamp = St.tex.clamp;
             {
                 const TileRdp *tt = &tiles_rdp[St.tex_tile];
-                float mitad = (((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0) ? 0.5f : 0.0f;
+                float mitad = (FILTRADO_TEXTURAS && ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0) ? 0.5f : 0.0f;
 
                 mul_st[0] = (1.0f / 32.0f) * mul_desplaz_k[tt->shifts & 15] * St.tex.maceta_w_inv;
                 mul_st[1] = (1.0f / 32.0f) * mul_desplaz_k[tt->shiftt & 15] * St.tex.maceta_h_inv;
@@ -891,6 +896,8 @@ static void construir_impl_estado(int tile, int es_rect)
     st->texturizado = prim_texturizado && St.valido_tex;
     st->prim = (1 << 3)  | (st->texturizado ? (1 << 4) : 0) | (niebla_en ? (1 << 5) : 0) |
                (mezcla_alpha ? (1 << 6) : 0);
+    /* Los triangulos 3D llevan Gouraud, niebla o transparencias; el HUD, los menus y el texto son rectangulos. */
+    st->dither = !es_rect && ciclo < (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
     EMPEZAR_PX();
     gs_aplicar_estado(st);
     FIN_PX(3);

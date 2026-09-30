@@ -504,6 +504,16 @@ static int candidato_interp(void)
     return interp_user && estado_juego == 4 && juego_en_pausa == 0;
 }
 
+/* Tras apagar el intermedio por falta de tiempo, tareas a 30 FPS antes de volver a probar:
+   sin esto, cerca del limite se alterna 60 y 30 de un frame a otro y el ritmo tironea.
+   Un pico aislado (un giro que mete mas geometria) solo espera unas tareas; si se repite antes
+   de TAREAS_CALMA_INTERP tareas estables, la espera se duplica hasta el maximo. */
+#define TAREAS_ESPERA_MIN_INTERP 6
+#define TAREAS_ESPERA_MAX_INTERP 45
+#define TAREAS_CALMA_INTERP      90
+static u32 espera_reactivar, espera_escalada = TAREAS_ESPERA_MIN_INTERP, tareas_estables;
+u32 cambios_modo_interp;
+
 static int interp_decide(void)
 {
     const TablaMtx *ant = &mtx_tab[act_mtx];
@@ -513,6 +523,11 @@ static int interp_decide(void)
     }
     if (retroceso > 0) {
         retroceso--;
+        por_que_saltear_interp[3]++;
+        return 0;
+    }
+    if (espera_reactivar > 0) {
+        espera_reactivar--;
         por_que_saltear_interp[3]++;
         return 0;
     }
@@ -548,8 +563,16 @@ static int interp_decide(void)
         if (!cabe) {
             edad_interp++;
             interp_salteado++;
+            if (ultimo_usado_interp) {
+                espera_reactivar = espera_escalada;
+                espera_escalada = espera_escalada * 2 < TAREAS_ESPERA_MAX_INTERP ? espera_escalada * 2 : TAREAS_ESPERA_MAX_INTERP;
+                tareas_estables = 0;
+            }
             return 0;
         }
+    }
+    if (++tareas_estables >= TAREAS_CALMA_INTERP) {
+        espera_escalada = TAREAS_ESPERA_MIN_INTERP;
     }
     return 1;
 }

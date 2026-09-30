@@ -226,11 +226,14 @@ void actualizar_estado_juego(void) {
             MARCAR_TIEMPOS_PS2("setup_race (resto)");
             break;
         case FINAL:
+            /* Tambien es una carga sin frames: el perro guardian da 30 s */
+            EMPEZAR_TIEMPOS_PS2("carga de ceremonia");
             ahora_cargado_circuito_id = NULO_CIRCUITO;
             inicializar_secuencias_final_segmento();
             cargar_cinematica_ceremonia();
             break;
         case SECUENCIA_CREDITOS:
+            EMPEZAR_TIEMPOS_PS2("carga de creditos");
             ahora_cargado_circuito_id = NULO_CIRCUITO;
             inicializar_carrera_segmento();
             inicializar_secuencias_final_segmento();

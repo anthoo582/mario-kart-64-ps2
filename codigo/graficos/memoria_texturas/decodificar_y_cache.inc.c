@@ -144,16 +144,56 @@ static u32 atlas_tbp;   /* bloque de 256 bytes donde empieza */
 static u32 ci_tbp;      /* 0: sin reserva */
 static u32 renglones_atlas;  /* filas utiles */
 static u32 atlas_th;
-static u32 anillo_y;      /* primera fila libre del anillo de estantes */
+static u32 anillo_y, anillo_c; /* ultima franja abierta: fila y columna siguiente */
+
+/* El atlas se reparte en columnas: al abrir una estanteria solo se desaloja su franja dentro de
+   las columnas que ocupa, no el ancho entero (una textura de 128 filas desalojaba 512 KB). */
+#define ATLAS_COL_W 256
+#define ATLAS_COLS  (ATLAS_W / ATLAS_COL_W)
 
 typedef struct {
-    u16 y, x;
+    u16 y, x, x_fin;
     u8 open;
 } Estante;
 
 static Estante estante[CLASSES_ESTANTE];
 /* Estantes de huecos alineados a pagina (64x32) */
 static Estante estante_pagina[CLASSES_ESTANTE];
+
+/* Ultima pasada que uso alguna textura de cada fila de cada columna del atlas. */
+static u32 uso_celda[ATLAS_COLS][ATLAS_MAX_H];
+
+static inline void marcar_uso_atlas(u32 x, u32 w, u32 y, u32 h)
+{
+    u32 c, c_fin = (x + w + ATLAS_COL_W - 1) / ATLAS_COL_W;
+    u32 fin = y + h < ATLAS_MAX_H ? y + h : ATLAS_MAX_H;
+
+    for (c = x / ATLAS_COL_W; c < c_fin && c < ATLAS_COLS; c++) {
+        u32 *u = uso_celda[c], r;
+
+        for (r = y; r < fin; r++) {
+            u[r] = serie_pasada;
+        }
+    }
+}
+
+/* Pasadas desde el ultimo uso de las filas [y, y + h) en las columnas [c0, c0 + cols) */
+static u32 edad_franja(u32 c0, u32 cols, u32 y, u32 h)
+{
+    u32 edad = 0xFFFFFFFFu, c, r;
+    u32 fin = y + h < ATLAS_MAX_H ? y + h : ATLAS_MAX_H;
+
+    for (c = c0; c < c0 + cols && c < ATLAS_COLS; c++) {
+        const u32 *u = uso_celda[c];
+
+        for (r = y; r < fin; r++) {
+            u32 e = serie_pasada - u[r];
+
+            edad = e < edad ? e : edad;
+        }
+    }
+    return edad;
+}
 
 void tmem_empezar_frame(void)
 {
@@ -173,19 +213,19 @@ void tmem_empezar_frame(void)
         }
 #endif
         atlas_th = ilog2_ceil(renglones_atlas);
-        anillo_y = 0;
+        anillo_y = anillo_c = 0;
         registrar("texturas: atlas %ux%u en %x", (unsigned) ATLAS_W, (unsigned) renglones_atlas, (unsigned) base);
     }
 }
 
-static void renglones_desalojar_atlas(u32 y0, u32 y1)
+static void desalojar_zona_atlas(u32 x0, u32 x1, u32 y0, u32 y1)
 {
     int i;
 
     for (i = 0; i < TAMANIO_CACHE; i++) {
         EntradaCache *e = &s_cache[i];
 
-        if (e->valido && e->y < y1 && y0 < (u32) e->y + e->ranura_h) {
+        if (e->valido && e->y < y1 && y0 < (u32) e->y + e->ranura_h && e->x < x1 && x0 < (u32) e->x + e->ranura_w) {
             e->valido = 0;
             /* Solo importa si este frame ya la uso */
             if (e->pasada_usado == serie_pasada) {
@@ -196,17 +236,18 @@ static void renglones_desalojar_atlas(u32 y0, u32 y1)
     for (i = 0; i < CLASSES_ESTANTE; i++) {
         Estante *sh = &estante[i];
 
-        if (sh->open && sh->y < y1 && y0 < (u32) sh->y + (1u << i)) {
+        if (sh->open && sh->y < y1 && y0 < (u32) sh->y + (1u << i) && sh->x < x1 && x0 < sh->x_fin) {
             sh->open = 0;
         }
         sh = &estante_pagina[i];
-        if (sh->open && sh->y < y1 && y0 < (u32) sh->y + (1u << i)) {
+        if (sh->open && sh->y < y1 && y0 < (u32) sh->y + (1u << i) && sh->x < x1 && x0 < sh->x_fin) {
             sh->open = 0;
         }
     }
 }
 
 #define CONSERVAR_REUTILIZAR 3
+#define EDAD_FRANJA_LIBRE 120 /* pasadas sin uso: de 1 a 4 s segun haya frame intermedio */
 
 static EntradaCache *reutilizar_candidato(const u8 *orig_, u32 w, u32 h, int envolver_s, int envolver_t, int nativo)
 {
@@ -238,7 +279,7 @@ static EntradaCache *reutilizar_candidato(const u8 *orig_, u32 w, u32 h, int env
 /* Reserva un hueco de w x h (h potencia de 2 si repite en T */
 static int reservar_atlas(u32 w, u32 h, u32 alinear_x, int pagina_alineado, u16 *salida_x, u16 *salida_y, u16 *salida_h)
 {
-    u32 cls = 0, estante_h, x;
+    u32 cls = 0, estante_h, x, cols;
     Estante *sh;
 
     while ((1u << cls) < h) {
@@ -255,25 +296,54 @@ static int reservar_atlas(u32 w, u32 h, u32 alinear_x, int pagina_alineado, u16 
     if (cls >= CLASSES_ESTANTE || estante_h > renglones_atlas || w > ATLAS_W) {
         return 0;
     }
+    cols = (w + ATLAS_COL_W - 1) / ATLAS_COL_W;
     sh = pagina_alineado ? &estante_pagina[cls] : &estante[cls];
     if (sh->open) {
         x = (sh->x + alinear_x - 1) & ~(alinear_x - 1);
-        if (x + w <= ATLAS_W) {
+        if (x + w <= sh->x_fin) {
             goto colocar;
         }
         sh->open = 0;
     }
     {
-        u32 y = (anillo_y + estante_h - 1) & ~(estante_h - 1);
+        /* Franja nueva: la de uso mas viejo, recorriendo las posiciones en anillo. Las que tienen
+           texturas en uso se saltan (desalojarlas obliga a decodificarlas y subirlas otra vez). */
+        u32 franjas = renglones_atlas / estante_h, pos_c = ATLAS_COLS - cols + 1, total = franjas * pos_c;
+        u32 fila = (anillo_y / estante_h) % franjas, i, inicio, mejor = 0, mejor_edad = 0;
+        int hay = 0;
 
-        if (y + estante_h > renglones_atlas) {
-            y = 0;
+        if (anillo_c >= pos_c) {
+            anillo_c = 0;
+            fila = (fila + 1) % franjas;
         }
-        renglones_desalojar_atlas(y, y + estante_h);
-        anillo_y = y + estante_h;
-        sh->y = (u16) y;
+        inicio = fila * pos_c + anillo_c;
+
+        for (i = 0; i < total; i++) {
+            u32 p = (inicio + i) % total, c0 = p % pos_c, cy = p / pos_c * estante_h, e;
+
+            if ((c0 * ATLAS_COL_W) & (alinear_x - 1)) {
+                continue; /* REPEAT: el origen va alineado al ancho */
+            }
+            e = edad_franja(c0, cols, cy, estante_h);
+            if (!hay || e > mejor_edad) {
+                hay = 1;
+                mejor_edad = e;
+                mejor = p;
+                if (e >= EDAD_FRANJA_LIBRE) {
+                    break;
+                }
+            }
+        }
+        if (!hay) {
+            return 0;
+        }
+        x = (mejor % pos_c) * ATLAS_COL_W;
+        sh->y = (u16) (mejor / pos_c * estante_h);
+        sh->x_fin = (u16) (x + cols * ATLAS_COL_W);
+        desalojar_zona_atlas(x, sh->x_fin, sh->y, sh->y + estante_h);
+        anillo_y = sh->y;
+        anillo_c = mejor % pos_c + cols;
         sh->open = 1;
-        x = 0;
     }
 colocar:
     sh->x = (u16) (x + w);
@@ -460,6 +530,7 @@ static void eje(u32 lo, u32 hi, u32 mascara, u32 cm, u32 *size, u32 *decodificar
 static void rellenar_salida(EntradaCache *e, InfoTextura *salida)
 {
     e->pasada_usado = serie_pasada;
+    marcar_uso_atlas(e->x, e->ranura_w, e->y, e->ranura_h);
     salida->clamp = e->clamp;
     salida->width = e->w;
     salida->height = e->h;

@@ -549,7 +549,7 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     if (St.valido_tex) {
         float mitad = 0.0f;
 
-        if (((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE)) {
+        if (FILTRADO_TEXTURAS && ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE)) {
             u64 clamp = St.gs.clamp;
             float ds = voltear ? dtdy : dsdx;
             float dt = voltear ? dsdx : dtdy;

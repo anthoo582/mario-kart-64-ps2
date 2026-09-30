@@ -42,6 +42,7 @@ make iso
 | `make DEV=1` | DEBUG + registro y guiones de prueba por `host:` (emuladores) |
 | `make DEBUG=1 DEBUG_AUDIO=1` | DEBUG + página de audio en el panel |
 | `make MONOLITICO=1` | Un solo ELF con toda la ROM adentro (uLaunchELF sin ISO) |
+| `make EXTRA_DEFINES=-DFILTRADO_TEXTURAS=0` | Texturas sin suavizado (vecino más cercano) |
 | `make test` | Pruebas en el PC (combinador de color, caminos del tren y del barco) |
 | `make clean` | Borra `build/` |
 
@@ -50,6 +51,9 @@ make iso
 - **PCSX2**: abrir la ISO de `compilaciones/`.
 - **OPL**: copiar la ISO a la carpeta `CD/` del USB, HDD o SMB. `make iso` deja
   una copia con el nombre que espera OPL en `compilaciones/disco/OPL/CD/`.
+  Lanzado desde OPL, el juego no reinicia el IOP (OPL ya lo dejó listo), lo que
+  ahorra volver a montar el USB, el HDD o la red. A cambio no hay VMC, PADEMU ni
+  IGR de OPL: la partida se guarda en la Memory Card física.
 - **uLaunchELF**: `SLUS_999.99` necesita `SMK64ROM.BIN` al lado; si no, usar el
   ELF de `make MONOLITICO=1`.
 

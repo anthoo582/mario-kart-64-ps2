@@ -32,6 +32,11 @@ u64 tiempo_actual(void);
 void inicializar_mandos_ps2(void);
 void leer_mandos_ps2(void);
 
+/* arranque_ps2.c: 1 si el modulo quedo residente en el IOP. Sin el, la libreria
+   del EE que lo usa se queda esperando su servidor RPC para siempre. */
+int cargar_modulo_iop(const char *camino);
+int ejecutar_modulo_iop(const char *nombre, void *irx, u32 tamanio);
+
 #ifndef PS2_BUILD_ID
 #define PS2_BUILD_ID "sin-version"
 #endif

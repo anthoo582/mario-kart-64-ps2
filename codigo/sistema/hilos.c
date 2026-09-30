@@ -405,8 +405,9 @@ void osSetEventMesg(OSEvent e, OSMesgQueue *mq, OSMesg mens)
 
 void enviar_evento_sistema(OSEvent e)
 {
-    if (e < OS_NUM_EVENTS && eventos[e].queue != NULL) {
-        osSendMesg(eventos[e].queue, eventos[e].msg, OS_MESG_NOBLOCK);
+    if (e < OS_NUM_EVENTS && eventos[e].queue != NULL &&
+        osSendMesg(eventos[e].queue, eventos[e].msg, OS_MESG_NOBLOCK) != 0) {
+        registrar("evento %d perdido: cola llena (%d mensajes)", (int) e, (int) eventos[e].queue->msgCount);
     }
 }
 

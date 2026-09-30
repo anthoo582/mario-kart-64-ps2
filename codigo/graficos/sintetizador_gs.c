@@ -209,6 +209,36 @@ static void fijar_pantalla(int buffer)
     *(volatile u64 *) 0x12000090 = v;
 }
 
+/* La VRAM conserva la ultima imagen del cargador (OPL, navegador) hasta el primer frame. */
+static void limpiar_pantallas(void)
+{
+    static Qword pkt[20] __attribute__((aligned(64)));
+    Qword *q = pkt;
+    int b;
+
+    q->d[0] = giftag_lo(15, 1, 0, 0, GIF_FLG_PACKED, 1);
+    q->d[1] = GIF_REG_AD;
+    q++;
+#define AD_INI(r, v) (q->d[0] = (v), q->d[1] = (r), q++)
+    AD_INI(GSR_ZBUF_1, gs_valor_zbuf(0));
+    AD_INI(PRUEBA_GSR_1, GS_SETREG_TEST(0, 0, 0, 0, 0, 0, 1, 1));
+    AD_INI(GSR_XYOFFSET_1, GS_SETREG_XYOFFSET(DESPLAZAMIENTO_X_XY << 4, DESPLAZAMIENTO_Y_XY << 4));
+    AD_INI(TIJERA_GSR_1, GS_SETREG_SCISSOR(0, GS_ANCHO - 1, 0, GS_ALTO - 1));
+    AD_INI(GSR_DTHE, 0);
+    for (b = 0; b < 2; b++) {
+        AD_INI(GSR_FRAME_1, frame_reg(b));
+        AD_INI(GSR_PRIM, 6);
+        AD_INI(GSR_RGBAQ, 0x80000000ULL);
+        AD_INI(GSR_XYZ2, (u64) (DESPLAZAMIENTO_X_XY << 4) | ((u64) (DESPLAZAMIENTO_Y_XY << 4) << 16));
+        AD_INI(GSR_XYZ2, (u64) ((DESPLAZAMIENTO_X_XY + GS_ANCHO) << 4) | ((u64) ((DESPLAZAMIENTO_Y_XY + GS_ALTO) << 4) << 16));
+    }
+#undef AD_INI
+    FlushCache(0);
+    esperar_gif();
+    dmaKit_send(DMA_CHANNEL_GIF, pkt, (u32) (q - pkt));
+    esperar_gif();
+}
+
 void gs_inicializar(void)
 {
     ee_sema_t sema;
@@ -224,7 +254,7 @@ void gs_inicializar(void)
     s_gs->ZBuffering = GS_SETTING_ON;
     s_gs->DoubleBuffering = GS_SETTING_ON;
     s_gs->PrimAlphaEnable = GS_SETTING_ON;
-    s_gs->Dithering = GS_SETTING_OFF;
+    s_gs->Dithering = GS_SETTING_ON;
 
     dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC, D_CTRL_STD_OFF, D_CTRL_RCYC_8,
                 1 << DMA_CHANNEL_GIF);
@@ -242,6 +272,7 @@ void gs_inicializar(void)
     buffer_dibujo = 1;
     pendiente_volteo = -1;
     fijar_pantalla(0);
+    limpiar_pantallas();
 
     registrar("GS: fb %x/%x z %x texturas %x-%x", (unsigned) s_gs->ScreenBuffer[0], (unsigned) s_gs->ScreenBuffer[1],
             (unsigned) s_gs->ZBuffer, (unsigned) gs_vram_inicio_texturas(), (unsigned) gs_vram_fin_texturas());
@@ -569,7 +600,7 @@ void gs_aplicar_estado(const EstadoGs *st)
 
     if (valido_estado && st->prueba == estado.prueba && st->alpha == estado.alpha && st->zbuf == estado.zbuf &&
         st->tex0 == estado.tex0 && st->tex1 == estado.tex1 && st->clamp == estado.clamp &&
-        st->tijera == estado.tijera && st->fogcol == estado.fogcol) {
+        st->tijera == estado.tijera && st->fogcol == estado.fogcol && st->dither == estado.dither) {
         if (st->prim != estado.prim || st->texturizado != estado.texturizado) {
             vaciar_prims();
             estado.prim = st->prim;
@@ -577,19 +608,20 @@ void gs_aplicar_estado(const EstadoGs *st)
         }
         return;
     }
-    empezar_ad(&etiqueta, 8);
+    empezar_ad(&etiqueta, 9);
     ad(PRUEBA_GSR_1, st->prueba);
     ad(GSR_ALPHA_1, st->alpha);
     ad(GSR_ZBUF_1, st->zbuf);
     ad(TIJERA_GSR_1, st->tijera);
     ad(GSR_FOGCOL, st->fogcol);
+    ad(GSR_DTHE, st->dither ? 1 : 0);
     if (st->texturizado) {
         ad(GSR_TEX0_1, st->tex0);
         ad(GSR_TEX1_1, st->tex1);
         ad(LIMITE_GSR_1, st->clamp);
-        n = 8;
+        n = 9;
     } else {
-        n = 5;
+        n = 6;
     }
     etiqueta->d[0] = giftag_lo(n, 0, 0, 0, GIF_FLG_PACKED, 1);
     act = etiqueta + 1 + n;
@@ -719,6 +751,7 @@ void gs_rellenar_rectangulo(int x0, int y0, int x1, int y1, u8 r, u8 g, u8 b)
     st.tijera = GS_SETREG_SCISSOR(0, GS_ANCHO - 1, 0, GS_ALTO - 1);
     st.prim = 0;
     st.texturizado = 0;
+    st.dither = 0;
     gs_aplicar_estado(&st);
     memset(&a, 0, sizeof(a));
     a.x = (float) x0;
@@ -802,6 +835,43 @@ void gs_copiar_desde_pantalla(float x, float y, float w, float h, u32 dst_vram, 
     ad(TIJERA_GSR_1, GS_SETREG_SCISSOR(0, GS_ANCHO - 1, 0, GS_ALTO - 1));
     valido_estado = 0;
 }
+
+#ifdef SMK64_DEV
+/* Copia la imagen en pantalla (CT16S) a la zona del Z-buffer como CT32: ps2_screenshot no lee CT16S.
+   Solo entre frames: el Z-buffer se vuelve a limpiar al empezar el siguiente. */
+u32 gs_pantalla_a_ct32(void)
+{
+    static Qword pkt[16] __attribute__((aligned(64)));
+    Qword *q = pkt;
+    u32 orig = s_gs->ScreenBuffer[buffer_pantalla] / 256;
+
+    q->d[0] = giftag_lo(14, 1, 0, 0, GIF_FLG_PACKED, 1);
+    q->d[1] = GIF_REG_AD;
+    q++;
+#define AD_DEV(r, v) (q->d[0] = (v), q->d[1] = (r), q++)
+    AD_DEV(GSR_FRAME_1, GS_SETREG_FRAME(s_gs->ZBuffer / 8192, GS_ANCHO / 64, GS_PSM_CT32, 0));
+    AD_DEV(GSR_ZBUF_1, gs_valor_zbuf(0));
+    AD_DEV(PRUEBA_GSR_1, GS_SETREG_TEST(0, 0, 0, 0, 0, 0, 1, 1));
+    AD_DEV(GSR_XYOFFSET_1, GS_SETREG_XYOFFSET(DESPLAZAMIENTO_X_XY << 4, DESPLAZAMIENTO_Y_XY << 4));
+    AD_DEV(TIJERA_GSR_1, GS_SETREG_SCISSOR(0, GS_ANCHO - 1, 0, GS_ALTO - 1));
+    AD_DEV(GSR_TEX0_1, GS_SETREG_TEX0(orig, GS_ANCHO / 64, GS_PSM_CT16S, 10, 9, 0, 1, 0, 0, 0, 0, 0));
+    AD_DEV(GSR_TEX1_1, GS_SETREG_TEX1(1, 0, 0, 0, 0, 0, 0));
+    AD_DEV(LIMITE_GSR_1, GS_SETREG_CLAMP(1, 1, 0, 0, 0, 0));
+    AD_DEV(GSR_ALPHA_1, GS_SETREG_ALPHA(0, 1, 0, 1, 0));
+    AD_DEV(GSR_PRIM, 6 | (1 << 4) | (1 << 8)); /* sprite, textura, coordenadas UV */
+    AD_DEV(GSR_UV, 0);
+    AD_DEV(GSR_XYZ2, (u64) (DESPLAZAMIENTO_X_XY << 4) | ((u64) (DESPLAZAMIENTO_Y_XY << 4) << 16));
+    AD_DEV(GSR_UV, (u64) (GS_ANCHO << 4) | ((u64) (GS_ALTO << 4) << 16));
+    AD_DEV(GSR_XYZ2, (u64) ((DESPLAZAMIENTO_X_XY + GS_ANCHO) << 4) | ((u64) ((DESPLAZAMIENTO_Y_XY + GS_ALTO) << 4) << 16));
+#undef AD_DEV
+    FlushCache(0);
+    esperar_gif();
+    dmaKit_send(DMA_CHANNEL_GIF, pkt, (u32) (q - pkt));
+    esperar_gif();
+    valido_estado = 0;
+    return s_gs->ZBuffer;
+}
+#endif
 
 void gs_subir_textura(u32 tbp, u32 tbw, const u32 *pixeles, u32 w, u32 h)
 {

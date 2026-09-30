@@ -17,6 +17,7 @@
 #define TROZOS_MAX    256
 #define ADELANTE_LECTURA    2   /* trozos por lectura de fondo (128 KB) */
 #define PRIORIDAD_CARGADOR 60
+#define MS_LECTURA_CD 10000       /* 128 KB: holgado incluso para OPL por USB 1.1 */
 
 extern u8 __rom_head_end[];
 
@@ -37,6 +38,24 @@ static volatile u32 s_waits, vblanks_espera; /* esperas de esperar_rom_ps2 y su 
 static u8 pila_cargador[16 * 1024] __attribute__((aligned(16)));
 extern void *_gp;
 
+/* sceCdSync(1) no bloquea: se duerme entre consultas. Si la lectura no acaba, se cancela. */
+static int esperar_cd(int ms_max)
+{
+    int ms;
+
+    for (ms = 0; sceCdSync(1); ms++) {
+        if (ms >= ms_max) {
+            sceCdBreak();
+            for (ms = 0; sceCdSync(1) && ms < ms_max; ms++) {
+                DelayThread(1000);
+            }
+            return 0;
+        }
+        DelayThread(1000);
+    }
+    return 1;
+}
+
 static int leer_trozos(u32 primer, u32 cantidad)
 {
     u8 *dst = inicio_flujo + primer * TROZO;
@@ -52,13 +71,11 @@ static int leer_trozos(u32 primer, u32 cantidad)
         mode.pad = 0;
         for (intentos = 0; intentos < 8; intentos++) {
             if (sceCdRead(s_lsn + primer * SECTORS_TROZO, cantidad * SECTORS_TROZO, dst, &mode)) {
-                /* sceCdSync(1) no bloquea: se duerme entre consultas. */
-                while (sceCdSync(1)) {
-                    DelayThread(1000);
-                }
-                if (sceCdGetError() == SCECdErNO) {
+                if (esperar_cd(MS_LECTURA_CD) && sceCdGetError() == SCECdErNO) {
                     return 1;
                 }
+                registrar("ROM: lectura del trozo %u sin terminar o con error %d (intento %d)", (unsigned) primer,
+                          sceCdGetError(), intentos + 1);
             }
             DelayThread(20000);
         }

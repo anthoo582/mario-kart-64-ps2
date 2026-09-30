@@ -1,9 +1,11 @@
 // Animaciones personajes
 
+#ifndef AVOID_UB
 TexturaMenu* dato_800E822C[] = {
     seg_2_textura_fuente_coma,
     dato_0200455C,
 };
+#endif
 
 TexturaMenu* dato_800E8234[] = {
     columna_menu_1j_seg2, dato_020047DC, columna_menu_2j_seg2, dato_02004804,

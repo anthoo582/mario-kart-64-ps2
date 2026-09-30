@@ -39,6 +39,7 @@ static volatile int estado_carga = PENDIENTE_CARGA;
 #define PRIORIDAD_HILO_CARGA 100 /* mientras lee: por encima del hilo de juego */
 #define PRIORIDAD_HILO_GUARDADO 125 /* despues: por debajo de todos los del juego */
 #define MS_TIMEOUT_CARGA 5000
+#define MS_ESPERA_ORDEN_MC 5000
 extern void *_gp;
 
 static u32 crc32(const u8 *p, u32 n)
@@ -67,8 +68,15 @@ static u32 crc_imagen(const ImagenGuardadoPs2 *img)
 static int resultado_llamar_mc(void)
 {
     int cmd, result = -1; /* mcSync devuelve -1 sin tocarlo si no habia llamada */
+    int ms;
 
-    while (mcSync(MC_NOWAIT, &cmd, &result) == 0) {
+    for (ms = 0; mcSync(MC_NOWAIT, &cmd, &result) == 0; ms++) {
+        if (ms >= MS_ESPERA_ORDEN_MC) {
+            /* libmc atiende una orden a la vez: si esta no vuelve, las siguientes tampoco. */
+            mc_ok = 0;
+            registrar("memcard: la tarjeta no contesto en %d ms; se deja de usar", ms);
+            return -1;
+        }
         DelayThread(1000);
     }
     return result;
@@ -78,7 +86,7 @@ static int listo_tarjeta_mc(void)
 {
     int type, free, format;
 
-    if (mcGetInfo(PUERTO_MC, RANURA_MC, &type, &free, &format) != 0) {
+    if (!mc_ok || mcGetInfo(PUERTO_MC, RANURA_MC, &type, &free, &format) != 0) {
         return 0;
     }
     return resultado_llamar_mc() >= -1 && type == sceMcTypePS2 && format;
@@ -383,12 +391,8 @@ void inicializar_memory_card(void)
     int devuelto;
 
     /* SIO2MAN ya lo cargo inicializar_mandos_ps2(). */
-    devuelto = SifLoadModule("rom0:MCMAN", 0, NULL);
-    if (devuelto >= 0) {
-        devuelto = SifLoadModule("rom0:MCSERV", 0, NULL);
-    }
-    if (devuelto < 0 || mcInit(MC_TYPE_MC) < 0) {
-        registrar("memcard: no se pudo iniciar libmc (%d)", devuelto);
+    if (!cargar_modulo_iop("rom0:MCMAN") || !cargar_modulo_iop("rom0:MCSERV") || (devuelto = mcInit(MC_TYPE_MC)) < 0) {
+        registrar("memcard: no se pudo iniciar libmc; se juega sin guardar");
     } else {
         mc_ok = 1;
     }

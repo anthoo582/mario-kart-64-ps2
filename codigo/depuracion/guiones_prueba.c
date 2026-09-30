@@ -20,6 +20,7 @@
 #include "carrera/camara.h"
 
 extern s32 estado_juego;
+extern s32 siguiente_estado_juego;
 extern s32 seleccion_menu;
 extern s16 id_circuito_actual;
 extern s32 seleccion_modo;
@@ -40,7 +41,7 @@ extern s8 juego_modo_sub_menu_columna[4][3];
 #define PASOS_MAX 1024
 #define TAMANIO_REGISTRO (192 * 1024)
 
-enum Op { ESPERA_OP, PULSACION_OP, MANTENIDO_OP, PALANCA_OP, OP_HASTA, PULSACION_OP_HASTA, COMPROBACION_OP, AUTOPILOTO_OP, DISPARO_OP, NOTA_OP, VOLCADO_OP, RELLENO_OP, ERROR_OP, OP_AUDIO, OP_CAMS, OP_SI, OP_PROF, OP_ACMD, OP_ITEM, OP_STICKY, OP_INTERP, FIN_OP };
+enum Op { ESPERA_OP, PULSACION_OP, MANTENIDO_OP, PALANCA_OP, OP_HASTA, PULSACION_OP_HASTA, COMPROBACION_OP, AUTOPILOTO_OP, DISPARO_OP, NOTA_OP, VOLCADO_OP, RELLENO_OP, ERROR_OP, OP_AUDIO, OP_CAMS, OP_SI, OP_PROF, OP_ACMD, OP_ITEM, OP_STICKY, OP_INTERP, OP_ESTADO, OP_MUESTRA, FIN_OP };
 enum Cmp { CMP_EQ, CMP_NE, CMP_LT, CMP_LE, CMP_GT, CMP_GE };
 
 typedef struct {
@@ -58,7 +59,7 @@ typedef struct {
 static const char *const nombres_variable[] = { "estado", "menu",      "pista", "modo", "carrera", "pausa", "vuelta",
                                          "puesto", "jugadores", "copa",  "cc",   "demo",    "frame",
                                          "submenu", "seleccion", "menupausa", "resultados", "columna",
-                                         "subcolumna", "menufinal" };
+                                         "subcolumna", "menufinal", "efectos", "disparadores", "rapidez" };
 #define VARIABLES_NUM ((int) (sizeof(nombres_variable) / sizeof(nombres_variable[0])))
 
 static char *guion;
@@ -147,6 +148,9 @@ static s32 leer_variable(int variable_)
             return (item != NULL) ? item->state : -1;
         }
         case 16: return dato_8015F894;
+        case 20: return (s32) jugadores[0].efectos;
+        case 21: return jugadores[0].disparadores;
+        case 22: return (s32) jugadores[0].actual_rapidez;
         case 19: {
             MenuItem *item = buscar_items_menu(MENU_ITEM_FIN_CIRCUITO_OPCION);
 
@@ -399,6 +403,22 @@ static int analizar_linea(char *line, Paso *st)
         st->value = (w != NULL && strcmp(w, "si") == 0);
         return w != NULL;
     }
+    if (strcmp(cmd, "muestra") == 0) {
+        char *variable_ = palabra_siguiente(&p);
+        int i;
+
+        st->op = OP_MUESTRA;
+        for (i = 0; variable_ != NULL && i < VARIABLES_NUM && strcmp(variable_, nombres_variable[i]) != 0; i++) {
+        }
+        st->variable = (u8) i;
+        return variable_ != NULL && i < VARIABLES_NUM;
+    }
+    if (strcmp(cmd, "siguiente_estado") == 0) {
+        st->op = OP_ESTADO;
+        w = palabra_siguiente(&p);
+        st->value = w ? atoi(w) : -1;
+        return st->value >= 0;
+    }
     if (strcmp(cmd, "fija") == 0) {
         st->op = OP_STICKY;
         w = palabra_siguiente(&p);
@@ -500,7 +520,7 @@ int guion_prueba_activo(void)
 
 static void registrar_cambios(void)
 {
-    static const int vigilado[] = { 0, 1, 2, 3, 4, 5, 6 };
+    static const int vigilado[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     unsigned i;
     int cambiado = 0;
 
@@ -536,17 +556,16 @@ static void aplicar_autopiloto(void)
     }
 }
 
-static int pendiente_disparo(void)
-{
-    FILE *f;
+static const char *volatile captura_pedida;
 
-    bloquear_host();
-    f = fopen("host:captura.req", "r");
-    if (f != NULL) {
-        fclose(f);
-    }
-    desbloquear_host();
-    return f != NULL;
+const char *captura_pendiente_guion(void)
+{
+    return captura_pedida;
+}
+
+void captura_hecha_guion(void)
+{
+    captura_pedida = NULL;
 }
 
 /* Frames de juego y VBlanks */
@@ -659,19 +678,10 @@ static void ejecutar_paso(OSContPad *relleno)
                 break;
             case DISPARO_OP:
                 if (frame_paso == 0) {
-                    FILE *f;
-
-                    bloquear_host();
-                    f = fopen("host:captura.req", "w");
-                    if (f != NULL) {
-                        fputs(st->text, f);
-                        fclose(f);
-                    }
-                    desbloquear_host();
+                    captura_pedida = st->text;
                     probar_registro("captura %s", st->text);
                 }
-                /* autotest.sh borra el fichero al hacer la captura */
-                if (frame_paso < 900 && (frame_paso % 10 != 9 || pendiente_disparo())) {
+                if (frame_paso < 900 && captura_pedida != NULL) {
                     frame_paso++;
                     return;
                 }
@@ -760,6 +770,15 @@ static void ejecutar_paso(OSContPad *relleno)
                     alternar_interp_gfx_ps2();
                 }
                 probar_registro("intermedio %s", st->value ? "si" : "no");
+                break;
+            case OP_MUESTRA:
+                probar_registro("%s = %d (0x%x)", nombres_variable[st->variable], (int) leer_variable(st->variable),
+                                (unsigned) leer_variable(st->variable));
+                break;
+            case OP_ESTADO:
+                /* Como el atajo DVDL del original (L+R+Z+B lleva a la ceremonia). */
+                siguiente_estado_juego = st->value;
+                probar_registro("siguiente estado %d", (int) st->value);
                 break;
             case OP_STICKY:
                 s_sticky[s_relleno] = st->buttons;

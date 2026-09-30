@@ -16,6 +16,7 @@
 #include "sistema/perfilado.h"
 #include "sistema/cronometro_fases.h"
 #include "sistema/bucle_principal.h" /* struct GfxPool: direcciones del pool de graficos */
+#include "depuracion/guiones_prueba.h"
 #ifdef SMK64_MEDIDOR
 #include "depuracion/medidor_rendimiento.h"
 #endif

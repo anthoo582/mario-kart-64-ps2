@@ -7,6 +7,10 @@
 #include "sistema/sistema_ps2.h"
 
 #define PRIORIDAD_HILO_VI 1 /* por encima de todos los hilos del juego */
+/* Huecos que los retrazos dejan libres en la cola del VI. El planificador (hilo3_video) ejecuta
+   la tarea de graficos dentro de su bucle: si tarda 16 retrazos, la cola se llenaba, el aviso de
+   fin de tarea (SP/DP) se perdia y el juego esperaba ese frame para siempre. */
+#define HUECOS_LIBRES_VI 4
 
 static s32 vi_sema = -1;
 static volatile u32 cantidad_vblank;
@@ -46,7 +50,8 @@ static void hilo_vi(void *parametro)
         WaitSema(vi_sema);
 
         retrazo++;
-        if (cola_vi != NULL && cantidad_retrazo_vi != 0 && (retrazo % cantidad_retrazo_vi) == 0) {
+        if (cola_vi != NULL && cantidad_retrazo_vi != 0 && (retrazo % cantidad_retrazo_vi) == 0 &&
+            (cola_vi->msgCount <= 2 * HUECOS_LIBRES_VI || cola_vi->validCount + HUECOS_LIBRES_VI < cola_vi->msgCount)) {
             osSendMesg(cola_vi, mens_vi, OS_MESG_NOBLOCK);
         }
         if (cola_audio != NULL) {

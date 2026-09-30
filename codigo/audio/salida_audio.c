@@ -356,14 +356,9 @@ void inicializar_ps2_audio(void)
     remuestrear_autoprueba();
 #endif
 
-    devuelto = SifExecModuleBuffer(irx_libsd, tamanio_irx_libsd, 0, NULL, NULL);
-    if (devuelto < 0) {
-        registrar("libsd.irx: %d", devuelto);
-    }
-    devuelto = SifExecModuleBuffer(irx_audsrv, tamanio_irx_audsrv, 0, NULL, NULL);
-    if (devuelto < 0) {
-        registrar("audsrv.irx: %d", devuelto);
-        return;
+    if (!ejecutar_modulo_iop("libsd.irx", irx_libsd, tamanio_irx_libsd) ||
+        !ejecutar_modulo_iop("audsrv.irx", irx_audsrv, tamanio_irx_audsrv)) {
+        return; /* sin audio, pero sin quedarse esperando a audsrv */
     }
     if (audsrv_init() != 0) {
         registrar("audsrv_init fallo: %s", audsrv_get_error_string());

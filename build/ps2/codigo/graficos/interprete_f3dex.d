@@ -35,6 +35,7 @@ build/ps2/codigo/graficos/interprete_f3dex.o: \
  incluir/graficos/pantallas_gigantes.h \
  incluir/graficos/memoria_texturas.h incluir/sistema/perfilado.h \
  incluir/sistema/cronometro_fases.h incluir/sistema/bucle_principal.h \
+ incluir/depuracion/guiones_prueba.h \
  codigo/graficos/interprete_f3dex/matrices_y_vertices.inc.c \
  codigo/graficos/interprete_f3dex/combinador_y_recorte.inc.c \
  codigo/graficos/interprete_f3dex/cache_matrices_y_ordenes.inc.c \
@@ -94,6 +95,7 @@ incluir/graficos/memoria_texturas.h:
 incluir/sistema/perfilado.h:
 incluir/sistema/cronometro_fases.h:
 incluir/sistema/bucle_principal.h:
+incluir/depuracion/guiones_prueba.h:
 codigo/graficos/interprete_f3dex/matrices_y_vertices.inc.c:
 codigo/graficos/interprete_f3dex/combinador_y_recorte.inc.c:
 codigo/graficos/interprete_f3dex/cache_matrices_y_ordenes.inc.c:

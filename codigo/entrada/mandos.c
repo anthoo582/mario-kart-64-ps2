@@ -92,33 +92,22 @@ static void convertir(const struct padButtonStatus *in, int analogico, OSContPad
     salida->errno = 0;
 }
 
-static void cargar_modulos(void)
-{
-    int devuelto;
-
-    devuelto = SifLoadModule("rom0:SIO2MAN", 0, NULL);
-    if (devuelto < 0) {
-        registrar("SIO2MAN: %d", devuelto);
-    }
-    devuelto = SifLoadModule("rom0:PADMAN", 0, NULL);
-    if (devuelto < 0) {
-        registrar("PADMAN: %d", devuelto);
-    }
-}
-
 void inicializar_mandos_ps2(void)
 {
     int puerto;
+    int padman_ok;
 
     if (rellenos_inicializado) {
         return;
     }
-    cargar_modulos();
-    if (padInit(0) != 1) {
+    padman_ok = cargar_modulo_iop("rom0:SIO2MAN") && cargar_modulo_iop("rom0:PADMAN");
+    if (padman_ok && padInit(0) != 1) {
         registrar("padInit fallo");
+        padman_ok = 0;
     }
     for (puerto = 0; puerto < PUERTOS_PS2; puerto++) {
-        estado_puerto[puerto] = padPortOpen(puerto, 0, buffer_relleno[puerto]) ? ESTABLE_ESPERA_PUERTO : PUERTO_CERRADO;
+        estado_puerto[puerto] =
+            (padman_ok && padPortOpen(puerto, 0, buffer_relleno[puerto])) ? ESTABLE_ESPERA_PUERTO : PUERTO_CERRADO;
         if (estado_puerto[puerto] == PUERTO_CERRADO) {
             registrar("padPortOpen(%d) fallo", puerto);
         }
