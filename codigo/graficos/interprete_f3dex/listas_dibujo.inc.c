@@ -247,6 +247,7 @@ static void ejecutar_dl(Gfx *dl)
                 St.zimg = (uintptr_t) direccion_seg(w1) & 0x1FFFFFFF;
                 break;
             case G_SETTIMG:
+                DIAG_CC_TIMG(w1);
                 tmem_fijar_imagen(direccion_seg(w1), (w0 >> 21) & 7, (w0 >> 19) & 3, (w0 & 0xFFF) + 1);
                 break;
             case G_SETCOMBINE:
@@ -471,8 +472,10 @@ static void cancelar_gancho_interp(void)
 /* Se dibuja el intermedio si */
 #define CICLOS_PRESUPUESTO_INTERP (25u * 294912u) /* 25 ms de los 33 del frame (lo libre medido decide) */
 #define CICLOS_FRAME         (294912u * 100u / 3u)
-#define MARGEN_INTERP_EN     (294912u * 5u)
-#define APAGADO_MARGEN_INTERP    (294912u * 7u / 2u)
+/* Margenes amplios: en una PS2 real el costo de un frame varia mas que en el emulador y un
+   intermedio que no entra atrasa la imagen real un retrazo entero (un tiron visible). */
+#define MARGEN_INTERP_EN     (294912u * 8u)
+#define APAGADO_MARGEN_INTERP    (294912u * 6u)
 static u32 apagado_libre, libre_en; /* ciclos libres por frame, sin y con intermedio */
 static u32 proporcion_interp = 176;
 static u32 samp_total, inactivo_samp;
@@ -519,6 +522,10 @@ static int interp_decide(void)
     const TablaMtx *ant = &mtx_tab[act_mtx];
 
     if (!candidato_interp()) {
+        return 0;
+    }
+    if (bloqueo_interp) {
+        por_que_saltear_interp[3]++;
         return 0;
     }
     if (retroceso > 0) {
@@ -577,26 +584,35 @@ static int interp_decide(void)
     return 1;
 }
 
-/* Ritmo real del juego: retrazos entre tareas de graficos. */
+/* Ritmo real del juego: retrazos entre tareas de graficos. Con intermedio cada tarea dura 2;
+   si dura mas, la imagen real se mostro tarde y se noto un tiron. Entonces se vuelve a 30 FPS
+   estables: 5 s la primera vez, 20 s la segunda y, desde la tercera, el resto de la carrera.
+   Mejor 30 parejos que alternar 60 y 30. */
+#define FALLOS_BLOQUEO_INTERP 3
+static u32 fallos_interp;
+
 static void interp_feedback(u32 periodo)
 {
-    static u8 hist; /* 1 bit por tarea con intermedio */
-    static u32 largo_retroceso = 60, calm;
-
-    if (calm < 1000 && ++calm == 600) {
-        largo_retroceso = 60;
-    }
-    if (!ultimo_usado_interp) {
+    if (estado_juego != 4 || (estado_carrera & 0xFFFF) < CARRERA_EN_PROGRESO) {
+        /* Cada carrera empieza de nuevo */
+        fallos_interp = 0;
+        bloqueo_interp = 0;
+        retroceso = 0;
         return;
     }
-    hist = (u8) ((hist << 1) | (periodo > 2 ? 1 : 0));
-    if (__builtin_popcount(hist) >= 3) {
-        hist = 0;
-        retroceso = (int) largo_retroceso;
-        largo_retroceso = largo_retroceso >= 120 ? 240 : largo_retroceso * 2;
-        calm = 0;
-        rend_registro_ps2("60 FPS: el juego no llega a 30 Hz con el frame intermedio; se pausa unos segundos (libre %u us)",
-                     (unsigned) (libre_en / 295));
+    /* 3 o 4 retrazos: el intermedio no entro. Una pausa mas larga viene de otra cosa (carga, E/S). */
+    if (!ultimo_usado_interp || periodo <= 2 || periodo > 4) {
+        return;
+    }
+    fallos_interp++;
+    if (fallos_interp >= FALLOS_BLOQUEO_INTERP) {
+        bloqueo_interp = 1;
+        rend_registro_ps2("60 FPS: %u tirones en esta carrera; sigue a 30 FPS hasta la proxima (libre %u us)",
+                          (unsigned) fallos_interp, (unsigned) (libre_en / 295));
+    } else {
+        retroceso = fallos_interp == 1 ? 150 : 600;
+        rend_registro_ps2("60 FPS: tiron (tarea de %u retrazos); %d tareas a 30 FPS (libre %u us)", (unsigned) periodo,
+                          retroceso, (unsigned) (libre_en / 295));
     }
 }
 

@@ -9,6 +9,7 @@
 #include <ultra64.h>
 
 #include "sistema/sistema_ps2.h"
+#include "entrada/multitap.h"
 #include "sistema/guardado_ps2.h"
 #include "sistema/cronometro_fases.h"
 
@@ -390,8 +391,11 @@ void inicializar_memory_card(void)
     s32 tid;
     int devuelto;
 
-    /* SIO2MAN ya lo cargo inicializar_mandos_ps2(). */
-    if (!cargar_modulo_iop("rom0:MCMAN") || !cargar_modulo_iop("rom0:MCSERV") || (devuelto = mcInit(MC_TYPE_MC)) < 0) {
+    int x = modulos_mando_x_ps2();
+
+    /* SIO2MAN (o XSIO2MAN) ya lo cargo inicializar_mandos_ps2(); MCMAN tiene que ser de la misma familia. */
+    if (!cargar_modulo_iop(x ? "rom0:XMCMAN" : "rom0:MCMAN") || !cargar_modulo_iop(x ? "rom0:XMCSERV" : "rom0:MCSERV") ||
+        (devuelto = mcInit(x ? MC_TYPE_XMC : MC_TYPE_MC)) < 0) {
         registrar("memcard: no se pudo iniciar libmc; se juega sin guardar");
     } else {
         mc_ok = 1;

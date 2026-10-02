@@ -157,8 +157,8 @@ int main(int argc, char *argv[])
     marcar_tiempos_ps2("GS y texturas");
     ETAPA(4);
     inicializar_mandos_ps2();
-    marcar_tiempos_ps2("mandos (SIO2MAN, PADMAN)");
-    inicializar_memory_card();  /* necesita SIO2MAN, que carga inicializar_mandos_ps2 */
+    marcar_tiempos_ps2("mandos (XSIO2MAN, XPADMAN, XMTAPMAN o SIO2MAN, PADMAN)");
+    inicializar_memory_card();  /* necesita (X)SIO2MAN, que carga inicializar_mandos_ps2 */
     marcar_tiempos_ps2("memory card (MCMAN, MCSERV; la lectura sigue en segundo plano)");
     ETAPA(5);
     inicializar_ps2_audio();

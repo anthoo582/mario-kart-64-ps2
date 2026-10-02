@@ -3,17 +3,6 @@
 
 #include <ultra64.h>
 
-extern Vtx datos_800E8700_vtx_0[];
-extern Vtx datos_800E8700_vtx_400400[];
-extern Vtx datos_800E8700_vtx_C02825[];
-extern Vtx datos_800E8700_seg_1_vtx_602025[];
-extern Vtx datos_800E8700_seg_8_vtx_104081[];
-extern Vtx datos_800E8700_seg_8_vtx_1041FF[];
-extern Vtx datos_800E8700_vtx_20000000[];
-extern Vtx datos_800E8700_vtx_28A10004[];
-extern Vtx datos_800E8700_vtx_29410018[];
-extern Vtx datos_800E8700_vtx_40020010[];
-extern Vtx datos_800E8700_vtx_800C0070[];
 extern Vtx dato_800E8700[];
 extern Vtx dato_800E8740[];
 extern Vtx dato_800E8780[];
@@ -32,7 +21,5 @@ extern Vtx dato_800E8B40[];
 extern Vtx dato_800E8B80[];
 extern Vtx dato_800E8BC0[];
 extern Vtx dato_800E8C00[];
-extern Gfx dato_800E8D40[];
-extern Gfx dato_800E8DD0[];
 
 #endif

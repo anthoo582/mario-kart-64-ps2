@@ -74,6 +74,10 @@ ifeq ($(MEDIDOR),1)
                codigo/depuracion/estadisticas_memoria.c
   DEFINES += -DSMK64_MEDIDOR=1
 endif
+# Los guiones de prueba (DEV) registran la memoria con la orden "memoria"
+ifeq ($(DEV)$(MEDIDOR),10)
+  EXTRA_SRC += codigo/depuracion/estadisticas_memoria.c
+endif
 
 # build/ps2/be primero: texturas u16 con los bytes invertidos
 INCLUDES := -I$(BUILD)/be -Iincluir -Iincluir/libultra -I$(BUILD) -I$(BUILD)/include -Icodigo -I. \
@@ -102,7 +106,7 @@ LDFLAGS += $(foreach f,$(SOFTDOUBLE_RAPIDO),-Wl,--wrap=$(f))
 ifneq ($(findstring SMK64_PROF,$(EXTRA_DEFINES)),)
   LDFLAGS += -Wl,--wrap=memcpy -Wl,--wrap=memset -Wl,--wrap=__divdf3
 endif
-LIBS     := -lgskit_toolkit -lgskit -ldmakit -laudsrv -lpad -lmc -lcdvd -ldebug -leedebug -lpatches -lkernel -lm -lc
+LIBS     := -lgskit_toolkit -lgskit -ldmakit -laudsrv -lpad -lmtap -lmc -lcdvd -ldebug -leedebug -lpatches -lkernel -lm -lc
 
 # --- Codigo (en este orden de enlace) ------------------------------------------------
 
@@ -151,7 +155,7 @@ PS2_SRC := \
   codigo/audio/salida_audio.c codigo/audio/microcodigo_audio.c codigo/depuracion/depuracion_audio.c \
   codigo/depuracion/monitor_audio.c codigo/depuracion/guiones_prueba.c codigo/graficos/combinador_color.c \
   codigo/depuracion/depuracion.c codigo/sistema/descompresion.c codigo/graficos/interprete_f3dex.c \
-  codigo/graficos/sintetizador_gs.c codigo/entrada/mandos.c codigo/sistema/arranque_ps2.c \
+  codigo/graficos/sintetizador_gs.c codigo/entrada/mandos.c codigo/entrada/multitap.c codigo/sistema/arranque_ps2.c \
   codigo/sistema/memory_card.c codigo/sistema/hardware.c codigo/sistema/hilos.c \
   codigo/sistema/retrazo_vertical.c codigo/sistema/ritmo_fisica.c codigo/sistema/carga_rom.c \
   codigo/sistema/tareas_rsp.c codigo/depuracion/muestreo_cpu.c codigo/sistema/guardado_ps2.c \

@@ -1,5 +1,5 @@
-build/ps2/dev/codigo/depuracion/guiones_prueba.o: \
- codigo/depuracion/guiones_prueba.c \
+build/ps2/dev/codigo/depuracion/estadisticas_memoria.o: \
+ codigo/depuracion/estadisticas_memoria.c \
  /usr/local/ps2dev/ps2sdk/ee/include/kernel.h \
  /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h \
  /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
@@ -18,14 +18,11 @@ build/ps2/dev/codigo/depuracion/guiones_prueba.o: \
  incluir/libultra/PR/os_libc.h incluir/libultra/PR/gu.h \
  incluir/juego/estructuras_comunes.h incluir/libultra/PR/os_ai.h \
  incluir/libultra/PR/libaudio.h incluir/libultra/PR/abi.h \
- incluir/libultra/PR/libultra.h incluir/libultra/PR/os.h \
- incluir/juego/definiciones.h incluir/sistema/sistema_ps2.h \
- incluir/sistema/perfilado.h incluir/audio/salida_audio.h \
- incluir/audio/microcodigo_audio.h incluir/depuracion/guiones_prueba.h \
- incluir/graficos/interprete_f3dex.h incluir/menus/elementos_menu.h \
- incluir/datos/texturas.h incluir/datos/texturas/segmento_2.h \
- incluir/datos/texturas/menus_y_personajes.h \
- incluir/sistema/bucle_principal.h incluir/carrera/camara.h \
+ incluir/libultra/PR/libultra.h incluir/audio/datos.h \
+ incluir/audio/interno.h incluir/audio/monton.h \
+ incluir/carrera/preparacion_carrera.h incluir/juego/macros.h \
+ incluir/juego/tipos_actores.h incluir/carrera/camara.h \
+ incluir/graficos/memoria_texturas.h \
  incluir/depuracion/estadisticas_memoria.h
 /usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
 /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
@@ -60,18 +57,12 @@ incluir/libultra/PR/os_ai.h:
 incluir/libultra/PR/libaudio.h:
 incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
-incluir/libultra/PR/os.h:
-incluir/juego/definiciones.h:
-incluir/sistema/sistema_ps2.h:
-incluir/sistema/perfilado.h:
-incluir/audio/salida_audio.h:
-incluir/audio/microcodigo_audio.h:
-incluir/depuracion/guiones_prueba.h:
-incluir/graficos/interprete_f3dex.h:
-incluir/menus/elementos_menu.h:
-incluir/datos/texturas.h:
-incluir/datos/texturas/segmento_2.h:
-incluir/datos/texturas/menus_y_personajes.h:
-incluir/sistema/bucle_principal.h:
+incluir/audio/datos.h:
+incluir/audio/interno.h:
+incluir/audio/monton.h:
+incluir/carrera/preparacion_carrera.h:
+incluir/juego/macros.h:
+incluir/juego/tipos_actores.h:
 incluir/carrera/camara.h:
+incluir/graficos/memoria_texturas.h:
 incluir/depuracion/estadisticas_memoria.h:

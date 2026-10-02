@@ -24,8 +24,8 @@ build/ps2/codigo/entrada/mandos.o: codigo/entrada/mandos.c \
  incluir/juego/estructuras_comunes.h incluir/libultra/PR/os_ai.h \
  incluir/libultra/PR/libaudio.h incluir/libultra/PR/abi.h \
  incluir/libultra/PR/libultra.h incluir/libultra/PR/os.h \
- incluir/sistema/sistema_ps2.h incluir/graficos/interprete_f3dex.h \
- incluir/depuracion/guiones_prueba.h
+ incluir/sistema/sistema_ps2.h incluir/entrada/multitap.h \
+ incluir/graficos/interprete_f3dex.h incluir/depuracion/guiones_prueba.h
 /usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
 /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
 /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
@@ -67,5 +67,6 @@ incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
 incluir/libultra/PR/os.h:
 incluir/sistema/sistema_ps2.h:
+incluir/entrada/multitap.h:
 incluir/graficos/interprete_f3dex.h:
 incluir/depuracion/guiones_prueba.h:

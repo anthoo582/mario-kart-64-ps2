@@ -28,7 +28,8 @@ build/ps2/dev/codigo/sistema/memory_card.o: codigo/sistema/memory_card.c \
  incluir/juego/estructuras_comunes.h incluir/libultra/PR/os_ai.h \
  incluir/libultra/PR/libaudio.h incluir/libultra/PR/abi.h \
  incluir/libultra/PR/libultra.h incluir/sistema/sistema_ps2.h \
- incluir/sistema/guardado_ps2.h incluir/sistema/cronometro_fases.h
+ incluir/entrada/multitap.h incluir/sistema/guardado_ps2.h \
+ incluir/sistema/cronometro_fases.h
 /usr/local/ps2dev/ps2sdk/ee/include/delaythread.h:
 /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
 /usr/local/ps2dev/ps2sdk/ee/include/timer.h:
@@ -73,5 +74,6 @@ incluir/libultra/PR/libaudio.h:
 incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
 incluir/sistema/sistema_ps2.h:
+incluir/entrada/multitap.h:
 incluir/sistema/guardado_ps2.h:
 incluir/sistema/cronometro_fases.h:

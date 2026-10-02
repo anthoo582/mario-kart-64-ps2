@@ -5,6 +5,10 @@
 #define VBLANK_US   16683u
 #define US_MARGEN   4000u
 #define FRAMES_ABAJO 90
+/* Un paso de fisica por retrazo: si la imagen tarda mas retrazos que pasos, el juego va en camara
+   lenta. Se admite un paso mas que el original (hasta 4, lo que usa DK Jungle en 4 jugadores) para
+   que la carrera siga a velocidad real aunque baje la cantidad de imagenes. */
+#define PASOS_MAX 4
 
 static s32 pasos;        /* pasos elegidos (0: aun sin elegir) */
 static s32 s_original;     /* los del juego para esta pista y modo */
@@ -38,7 +42,7 @@ void ps2_ritmo_imagen(u32 periodo)
         return;
     }
     late_hist = (u8) ((late_hist << 1) | (periodo > (u32) pasos ? 1 : 0));
-    if (__builtin_popcount(late_hist) >= 2 && pasos < s_original) {
+    if (__builtin_popcount(late_hist) >= 2 && pasos < (s_original < PASOS_MAX ? s_original + 1 : PASOS_MAX)) {
         pasos++;
         late_hist = 0;
         good_frames = 0;

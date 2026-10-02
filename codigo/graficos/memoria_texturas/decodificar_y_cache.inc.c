@@ -485,7 +485,7 @@ static u32 hash_tmem(u32 empezar, u32 largo, u32 h)
     return palabras_hash(w, (largo - (TAMANIO_TMEM - empezar)) / 4, h);
 }
 
-#ifdef SMK64_MEDIDOR
+#if defined(SMK64_MEDIDOR) || defined(SMK64_DEV)
 void tmem_uso_cache(u32 *entradas, u32 *bytes, u32 *capacidad)
 {
     u32 n = 0, total = 0;

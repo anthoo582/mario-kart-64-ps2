@@ -8,21 +8,22 @@
 #include <PR/os.h>
 
 #include "sistema/sistema_ps2.h"
+#include "entrada/multitap.h"
 #include "graficos/interprete_f3dex.h"
 #include "depuracion/guiones_prueba.h"
 #ifdef SMK64_MEDIDOR
 #include "depuracion/medidor_rendimiento.h"
 #endif
 
-#define PUERTOS_PS2 2
-
 enum { PUERTO_CERRADO, ESTABLE_ESPERA_PUERTO, MODO_ESPERA_PUERTO, LISTO_PUERTO };
 
-static char buffer_relleno[PUERTOS_PS2][256] __attribute__((aligned(64)));
-static int estado_puerto[PUERTOS_PS2];
-static int intentos_modo[PUERTOS_PS2];
+/* Un buffer de 256 bytes por conector (puerto y ranura del multitap), alineado a 64 para XPADMAN */
+static char buffer_relleno[PUERTOS_MANDO_PS2][RANURAS_MULTITAP][256] __attribute__((aligned(64)));
+static u8 estado_conector[PUERTOS_MANDO_PS2][RANURAS_MULTITAP];
+static u8 intentos_modo[PUERTOS_MANDO_PS2][RANURAS_MULTITAP];
 static OSContPad s_rellenos[MAXCONTROLLERS];
 static int rellenos_inicializado;
+static int padman_ok;
 
 u8 __osContLastCmd;
 u8 __osMaxControllers = MAXCONTROLLERS;
@@ -92,34 +93,55 @@ static void convertir(const struct padButtonStatus *in, int analogico, OSContPad
     salida->errno = 0;
 }
 
+/* Abre las ranuras que existen ahora: las 4 con multitap, solo la primera sin el. */
+static void abrir_conectores(void)
+{
+    int puerto, ranura;
+
+    for (puerto = 0; puerto < PUERTOS_MANDO_PS2; puerto++) {
+        int ranuras = multitap_conectado_ps2(puerto) ? RANURAS_MULTITAP : 1;
+
+        for (ranura = 0; ranura < RANURAS_MULTITAP; ranura++) {
+            int abierto = estado_conector[puerto][ranura] != PUERTO_CERRADO;
+
+            if (ranura < ranuras && !abierto) {
+                if (padPortOpen(puerto, ranura, buffer_relleno[puerto][ranura])) {
+                    estado_conector[puerto][ranura] = ESTABLE_ESPERA_PUERTO;
+                } else {
+                    registrar("padPortOpen(%d, %d) fallo", puerto, ranura);
+                }
+            } else if (ranura >= ranuras && abierto) {
+                padPortClose(puerto, ranura);
+                estado_conector[puerto][ranura] = PUERTO_CERRADO;
+            }
+        }
+    }
+}
+
 void inicializar_mandos_ps2(void)
 {
-    int puerto;
-    int padman_ok;
-
     if (rellenos_inicializado) {
         return;
     }
-    padman_ok = cargar_modulo_iop("rom0:SIO2MAN") && cargar_modulo_iop("rom0:PADMAN");
+    padman_ok = cargar_modulos_mando_ps2();
     if (padman_ok && padInit(0) != 1) {
         registrar("padInit fallo");
         padman_ok = 0;
     }
-    for (puerto = 0; puerto < PUERTOS_PS2; puerto++) {
-        estado_puerto[puerto] =
-            (padman_ok && padPortOpen(puerto, 0, buffer_relleno[puerto])) ? ESTABLE_ESPERA_PUERTO : PUERTO_CERRADO;
-        if (estado_puerto[puerto] == PUERTO_CERRADO) {
-            registrar("padPortOpen(%d) fallo", puerto);
-        }
+    if (padman_ok) {
+        inicializar_multitap_ps2();
+        abrir_conectores();
     }
     memset(s_rellenos, 0, sizeof(s_rellenos));
     rellenos_inicializado = 1;
     inicializar_guiones_prueba();
 }
 
-static void sondear_puerto(int puerto, OSContPad *salida)
+/* Lee un conector. Devuelve 1 y deja los botones crudos (activos a 1) si hay un mando listo. */
+static int sondear_conector(int puerto, int ranura, OSContPad *salida, u32 *crudos)
 {
     struct padButtonStatus botones;
+    u8 *estado_c = &estado_conector[puerto][ranura];
     int estado;
 
     salida->button = 0;
@@ -127,82 +149,107 @@ static void sondear_puerto(int puerto, OSContPad *salida)
     salida->stick_y = 0;
     salida->errno = CONT_NO_RESPONSE_ERROR;
 
-    if (estado_puerto[puerto] == PUERTO_CERRADO) {
-        return;
+    if (*estado_c == PUERTO_CERRADO) {
+        return 0;
     }
 
-    estado = padGetState(puerto, 0);
+    estado = padGetState(puerto, ranura);
     if (estado == PAD_STATE_DISCONN) {
-        estado_puerto[puerto] = ESTABLE_ESPERA_PUERTO;
-        return;
+        *estado_c = ESTABLE_ESPERA_PUERTO;
+        return 0;
     }
     if (estado != PAD_STATE_STABLE && estado != PAD_STATE_FINDCTP1) {
-        return;
+        return 0;
     }
 
-    if (estado_puerto[puerto] == ESTABLE_ESPERA_PUERTO) {
-        /* Mando recien conectado */
-        if (padInfoMode(puerto, 0, PAD_MODECUREXID, 0) != 0 &&
-            padSetMainMode(puerto, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK) == 1) {
-            estado_puerto[puerto] = MODO_ESPERA_PUERTO;
-            intentos_modo[puerto] = 0;
-            return;
+    if (*estado_c == ESTABLE_ESPERA_PUERTO) {
+        /* Mando recien conectado: modo analogico bloqueado si lo admite */
+        if (padInfoMode(puerto, ranura, PAD_MODECUREXID, 0) != 0 &&
+            padSetMainMode(puerto, ranura, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK) == 1) {
+            *estado_c = MODO_ESPERA_PUERTO;
+            intentos_modo[puerto][ranura] = 0;
+            return 0;
         }
-        estado_puerto[puerto] = LISTO_PUERTO;
-    } else if (estado_puerto[puerto] == MODO_ESPERA_PUERTO) {
-        if (padGetReqState(puerto, 0) != PAD_RSTAT_BUSY || ++intentos_modo[puerto] > 120) {
-            estado_puerto[puerto] = LISTO_PUERTO;
+        *estado_c = LISTO_PUERTO;
+    } else if (*estado_c == MODO_ESPERA_PUERTO) {
+        if (padGetReqState(puerto, ranura) != PAD_RSTAT_BUSY || ++intentos_modo[puerto][ranura] > 120) {
+            *estado_c = LISTO_PUERTO;
         }
-        return;
+        return 0;
     }
+
+    if (padRead(puerto, ranura, &botones) == 0) {
+        return 0;
+    }
+    {
+        int id = padInfoMode(puerto, ranura, PAD_MODECURID, 0);
+
+        convertir(&botones, id == PAD_TYPE_DUALSHOCK || id == PAD_TYPE_ANALOG, salida);
+    }
+    *crudos = 0xFFFFu ^ botones.btns;
+    return 1;
+}
 
 #ifdef SMK64_DEV
-    {
-        static u32 cantidad_registro;
+static void registrar_conectores(void)
+{
+    static u32 cantidad_registro;
+    int puerto, ranura;
 
-        if ((cantidad_registro++ % 240) == 0) {
+    if ((cantidad_registro++ % 240) != 0) {
+        return;
+    }
+    for (puerto = 0; puerto < PUERTOS_MANDO_PS2; puerto++) {
+        for (ranura = 0; ranura < RANURAS_MULTITAP; ranura++) {
             struct padButtonStatus b;
-            int r = padRead(puerto, 0, &b);
+            int r;
 
-            registrar("pad%d estado %d/%d leido %d ok %02x modo %02x btns %04x ejes %d,%d id %d", puerto, estado_puerto[puerto],
-                    estado, r, b.ok, b.mode, b.btns, b.ljoy_h, b.ljoy_v, padInfoMode(puerto, 0, PAD_MODECURID, 0));
+            if (estado_conector[puerto][ranura] == PUERTO_CERRADO) {
+                continue;
+            }
+            r = padRead(puerto, ranura, &b);
+            registrar("pad%d%c estado %d/%d leido %d ok %02x modo %02x btns %04x ejes %d,%d id %d", puerto + 1, 'A' + ranura,
+                      estado_conector[puerto][ranura], padGetState(puerto, ranura), r, b.ok, b.mode, b.btns, b.ljoy_h,
+                      b.ljoy_v, padInfoMode(puerto, ranura, PAD_MODECURID, 0));
         }
     }
+}
 #endif
-    if (padRead(puerto, 0, &botones) != 0) {
-        int analogico = padInfoMode(puerto, 0, PAD_MODECURID, 0) == PAD_TYPE_DUALSHOCK ||
-                     padInfoMode(puerto, 0, PAD_MODECURID, 0) == PAD_TYPE_ANALOG;
 
-        convertir(&botones, analogico, salida);
-        if (puerto == 0) {
+void leer_mandos_ps2(void)
+{
+    int jugador;
+
+    if (padman_ok && vigilar_multitap_ps2()) {
+        abrir_conectores();
+    }
+#ifdef SMK64_DEV
+    if (padman_ok) {
+        registrar_conectores();
+    }
+#endif
+    for (jugador = 0; jugador < MAXCONTROLLERS; jugador++) {
+        int puerto, ranura;
+        u32 crudos = 0;
+
+        if (!conector_jugador_ps2(jugador, &puerto, &ranura) ||
+            !sondear_conector(puerto, ranura, &s_rellenos[jugador], &crudos)) {
+            memset(&s_rellenos[jugador], 0, sizeof(OSContPad));
+            s_rellenos[jugador].errno = CONT_NO_RESPONSE_ERROR;
+            continue;
+        }
+        if (jugador == 0) {
             /* R3 solo (sin L3, que con R3 es el medidor): 60 FPS si/no. */
             static u32 ant_r3;
-            u32 pulsado = 0xFFFFu ^ botones.btns;
-            u32 r3 = (pulsado & (PAD_R3 | PAD_L3)) == PAD_R3;
+            u32 r3 = (crudos & (PAD_R3 | PAD_L3)) == PAD_R3;
 
             if (r3 && !ant_r3) {
                 alternar_interp_gfx_ps2();
             }
             ant_r3 = r3;
-        }
 #ifdef SMK64_MEDIDOR
-        if (puerto == 0) {
-            medidor_entrada_mando(0xFFFFu ^ botones.btns);
-        }
+            medidor_entrada_mando(crudos);
 #endif
-    }
-}
-
-void leer_mandos_ps2(void)
-{
-    int puerto;
-
-    for (puerto = 0; puerto < MAXCONTROLLERS; puerto++) {
-        if (puerto < PUERTOS_PS2) {
-            sondear_puerto(puerto, &s_rellenos[puerto]);
-        } else {
-            memset(&s_rellenos[puerto], 0, sizeof(OSContPad));
-            s_rellenos[puerto].errno = CONT_NO_RESPONSE_ERROR;
         }
     }
     if (guion_prueba_activo()) {
@@ -218,11 +265,14 @@ s32 osContInit(OSMesgQueue *mq, u8 *bitpattern, OSContStatus *situacion)
     (void) mq;
     inicializar_mandos_ps2();
 
-    /* MK64 solo mira el bit del puerto 1 para decidir si hay mando */
+    /* MK64 solo mira el bit del jugador 1 para decidir si hay mando */
     for (puerto = 0; puerto < MAXCONTROLLERS; puerto++) {
+        int p, r;
+
         memset(&situacion[puerto], 0, sizeof(OSContStatus));
         /* Con un guion de pruebas (DEV) los 4 mandos existen */
-        if ((puerto < PUERTOS_PS2 && estado_puerto[puerto] != PUERTO_CERRADO) || guion_prueba_activo()) {
+        if ((padman_ok && conector_jugador_ps2(puerto, &p, &r) && estado_conector[p][r] != PUERTO_CERRADO) ||
+            guion_prueba_activo()) {
             bits |= (u8) (1 << puerto);
             situacion[puerto].type = CONT_TYPE_NORMAL;
         } else {

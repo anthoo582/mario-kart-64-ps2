@@ -18,6 +18,7 @@
 #include "graficos/interprete_f3dex.h"
 #include "menus/elementos_menu.h"
 #include "carrera/camara.h"
+#include "depuracion/estadisticas_memoria.h"
 
 extern s32 estado_juego;
 extern s32 siguiente_estado_juego;
@@ -41,7 +42,7 @@ extern s8 juego_modo_sub_menu_columna[4][3];
 #define PASOS_MAX 1024
 #define TAMANIO_REGISTRO (192 * 1024)
 
-enum Op { ESPERA_OP, PULSACION_OP, MANTENIDO_OP, PALANCA_OP, OP_HASTA, PULSACION_OP_HASTA, COMPROBACION_OP, AUTOPILOTO_OP, DISPARO_OP, NOTA_OP, VOLCADO_OP, RELLENO_OP, ERROR_OP, OP_AUDIO, OP_CAMS, OP_SI, OP_PROF, OP_ACMD, OP_ITEM, OP_STICKY, OP_INTERP, OP_ESTADO, OP_MUESTRA, FIN_OP };
+enum Op { ESPERA_OP, PULSACION_OP, MANTENIDO_OP, PALANCA_OP, OP_HASTA, PULSACION_OP_HASTA, COMPROBACION_OP, AUTOPILOTO_OP, DISPARO_OP, NOTA_OP, VOLCADO_OP, RELLENO_OP, ERROR_OP, OP_AUDIO, OP_CAMS, OP_SI, OP_PROF, OP_ACMD, OP_ITEM, OP_STICKY, OP_INTERP, OP_ESTADO, OP_MUESTRA, OP_GRABA, OP_DISPARADOR, OP_MEMORIA, FIN_OP };
 enum Cmp { CMP_EQ, CMP_NE, CMP_LT, CMP_LE, CMP_GT, CMP_GE };
 
 typedef struct {
@@ -441,6 +442,33 @@ static int analizar_linea(char *line, Paso *st)
         st->op = VOLCADO_OP;
         return 1;
     }
+    if (strcmp(cmd, "graba") == 0) {
+        /* graba <prefijo> <cada> <n>: capturas periodicas sin parar la entrada; "graba no" las corta */
+        char *n = NULL;
+
+        st->op = OP_GRABA;
+        st->text = palabra_siguiente(&p);
+        w = palabra_siguiente(&p);
+        n = palabra_siguiente(&p);
+        st->value = w ? atoi(w) : 0;
+        st->count = n ? atoi(n) : 0;
+        return st->text != NULL && (strcmp(st->text, "no") == 0 || (st->value > 0 && st->count > 0));
+    }
+    if (strcmp(cmd, "disparador") == 0) {
+        /* disparador <bits> [jugador 1-8]: como si el juego hubiera puesto esos disparadores */
+        char *j;
+
+        st->op = OP_DISPARADOR;
+        w = palabra_siguiente(&p);
+        j = palabra_siguiente(&p);
+        st->value = w ? (s32) strtol(w, NULL, 0) : 0;
+        st->count = j ? atoi(j) : 0;
+        return st->value != 0 && st->count >= 0 && st->count <= 8;
+    }
+    if (strcmp(cmd, "memoria") == 0) {
+        st->op = OP_MEMORIA;
+        return 1;
+    }
     if (strcmp(cmd, "fin") == 0) {
         st->op = FIN_OP;
         return 1;
@@ -557,6 +585,19 @@ static void aplicar_autopiloto(void)
 }
 
 static const char *volatile captura_pedida;
+static const char *graba_prefijo;
+static s32 graba_cada, graba_quedan, graba_indice;
+static char graba_nombre[48];
+
+static void avanzar_grabacion(void)
+{
+    if (graba_quedan <= 0 || captura_pedida != NULL || (s_frame % (u32) graba_cada) != 0) {
+        return;
+    }
+    snprintf(graba_nombre, sizeof(graba_nombre), "%s_%03d", graba_prefijo, (int) graba_indice++);
+    graba_quedan--;
+    captura_pedida = graba_nombre;
+}
 
 const char *captura_pendiente_guion(void)
 {
@@ -796,6 +837,35 @@ static void ejecutar_paso(OSContPad *relleno)
                 pedir_volcado_display_list();
                 probar_registro("volcado de la display list pedido");
                 break;
+            case OP_GRABA:
+                if (strcmp(st->text, "no") == 0) {
+                    graba_quedan = 0;
+                } else {
+                    graba_prefijo = st->text;
+                    graba_cada = st->value;
+                    graba_quedan = st->count;
+                    graba_indice = 0;
+                }
+                probar_registro("graba %s cada %d frames, %d capturas", st->text, (int) st->value, (int) st->count);
+                break;
+            case OP_DISPARADOR: {
+                int quien = st->count > 0 ? st->count - 1 : s_relleno;
+
+                jugadores[quien].disparadores |= (u32) st->value;
+                probar_registro("disparador 0x%x en el jugador %d", (unsigned) st->value, quien + 1);
+                break;
+            }
+            case OP_MEMORIA: {
+                EstadisticasMemoria m;
+
+                consultar_memoria(&m);
+                probar_registro("memoria: monton libre %u KB, pool del juego libre %u KB, audio %u/%u KB, texturas %u (%u/%u KB)",
+                                (unsigned) (m.monton_libre / 1024), (unsigned) (m.pool_juego_libre / 1024),
+                                (unsigned) (m.audio_usado / 1024), (unsigned) (m.audio_total / 1024),
+                                (unsigned) m.texturas_entradas, (unsigned) (m.texturas_bytes / 1024),
+                                (unsigned) (m.texturas_capacidad / 1024));
+                break;
+            }
             case FIN_OP:
                 terminar("fin");
                 return;
@@ -822,6 +892,7 @@ void avanzar_guion_prueba(OSContPad *rellenos)
     registrar_cambios();
     registrar_rend();
     ejecutar_paso(&rellenos[s_relleno]);
+    avanzar_grabacion();
     for (i = 0; i < MAXCONTROLLERS; i++) {
         rellenos[i].button |= s_sticky[i];
     }

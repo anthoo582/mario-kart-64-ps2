@@ -34,13 +34,14 @@ build/ps2/dev/codigo/graficos/interprete_f3dex.o: \
  incluir/graficos/memoria_texturas.h \
  incluir/graficos/pantallas_gigantes.h \
  incluir/graficos/memoria_texturas.h incluir/sistema/perfilado.h \
- incluir/sistema/cronometro_fases.h incluir/sistema/bucle_principal.h \
- incluir/depuracion/guiones_prueba.h \
+ incluir/sistema/cronometro_fases.h incluir/juego/definiciones.h \
+ incluir/sistema/bucle_principal.h incluir/depuracion/guiones_prueba.h \
  codigo/graficos/interprete_f3dex/matrices_y_vertices.inc.c \
  codigo/graficos/interprete_f3dex/combinador_y_recorte.inc.c \
  codigo/graficos/interprete_f3dex/cache_matrices_y_ordenes.inc.c \
  codigo/graficos/interprete_f3dex/listas_dibujo.inc.c \
- codigo/graficos/interprete_f3dex/tarea_graficos.inc.c
+ codigo/graficos/interprete_f3dex/tarea_graficos.inc.c \
+ codigo/graficos/interprete_f3dex/diagnostico_cc.inc.c
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
 incluir/libultra/PR/os_exception.h:
@@ -94,6 +95,7 @@ incluir/graficos/pantallas_gigantes.h:
 incluir/graficos/memoria_texturas.h:
 incluir/sistema/perfilado.h:
 incluir/sistema/cronometro_fases.h:
+incluir/juego/definiciones.h:
 incluir/sistema/bucle_principal.h:
 incluir/depuracion/guiones_prueba.h:
 codigo/graficos/interprete_f3dex/matrices_y_vertices.inc.c:
@@ -101,3 +103,4 @@ codigo/graficos/interprete_f3dex/combinador_y_recorte.inc.c:
 codigo/graficos/interprete_f3dex/cache_matrices_y_ordenes.inc.c:
 codigo/graficos/interprete_f3dex/listas_dibujo.inc.c:
 codigo/graficos/interprete_f3dex/tarea_graficos.inc.c:
+codigo/graficos/interprete_f3dex/diagnostico_cc.inc.c:

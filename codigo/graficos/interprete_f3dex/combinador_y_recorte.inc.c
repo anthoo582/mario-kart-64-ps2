@@ -31,11 +31,17 @@ static void combinar_color(const u8 sombreado[4], VtxColor *o)
         } else {
             o->a = cc[3].a * 128.0f; /* alfa constante: se usa con TCC abajo */
         }
+        if (alfa_dither) {
+            o->a = o->a * o->a * (1.0f / 128.0f);
+        }
     } else {
         o->r = (cc[0].m + cc[0].a) * 255.0f;
         o->g = (cc[1].m + cc[1].a) * 255.0f;
         o->b = (cc[2].m + cc[2].a) * 255.0f;
         o->a = (cc[3].m + cc[3].a) * 128.0f;
+        if (alfa_dither) {
+            o->a = o->a * o->a * (1.0f / 128.0f);
+        }
     }
 }
 
@@ -81,6 +87,7 @@ static void color_vertice(VerticeRsp *v)
         EMPEZAR_PROF(COMBINACION_PROF);
         combinar_color(sombreado, &color_memo[ranura].c);
         FIN_PROF(COMBINACION_PROF);
+        DIAG_CC(sombreado, &color_memo[ranura].c);
         color_memo[ranura].gen = gen_cc;
         color_memo[ranura].key = clave;
     }
@@ -486,6 +493,60 @@ static void dibujar_triangulo(int i0, int i1, int i2)
     }
 }
 
+/* Region de CLAMP desplazada al hueco de la copia blanca (rectangulos con filtro) */
+static u64 desplazar_clamp_region(u64 c, int ds, int dt)
+{
+    if ((c & 3) == 2) {
+        u64 mn = ((c >> 4) & 0x3FF) + (u64) ds, mx = ((c >> 14) & 0x3FF) + (u64) ds;
+
+        c = (c & ~((u64) 0xFFFFF << 4)) | (mn << 4) | (mx << 14);
+    }
+    if (((c >> 2) & 3) == 2) {
+        u64 mn = ((c >> 24) & 0x3FF) + (u64) dt, mx = ((c >> 34) & 0x3FF) + (u64) dt;
+
+        c = (c & ~((u64) 0xFFFFF << 24)) | (mn << 24) | (mx << 34);
+    }
+    return c;
+}
+
+/* Segunda pasada de m*TEXEL + a para G_TEXRECT: suma a*alfa con la copia blanca de la textura
+   (el numero de puesto arcoiris y los textos con (1 - ENV)*TEXEL + PRIM). */
+static void agregar_pasada_rect(int tile, const VerticeGs *a, const VerticeGs *b, const VerticeRecorte *cv)
+{
+    EstadoGs guardado = St.gs;
+    EstadoGs agregar = St.gs;
+    InfoTextura blanco;
+    VerticeGs a2 = *a, b2 = *b;
+    float ds, dt;
+
+    if (!preparar_textura(tile, (St.om_h >> G_MDSFT_TEXTLUT) & 3, BLANCO_RGB_TMEM | TMEM_PARA_RECT, &blanco)) {
+        return;
+    }
+    ds = (blanco.origen_s - St.tex.origen_s) * St.tex.maceta_w_inv;
+    dt = (blanco.origen_t - St.tex.origen_t) * St.tex.maceta_h_inv;
+    a2.s += ds;
+    b2.s += ds;
+    a2.t += dt;
+    b2.t += dt;
+    agregar.tex0 = blanco.tex0 | ((u64) (alpha_desde_tex ? 1 : 0) << 34);
+    agregar.clamp = (St.gs.clamp == St.tex.clamp)
+                        ? blanco.clamp
+                        : desplazar_clamp_region(St.gs.clamp, (int) (blanco.origen_s - St.tex.origen_s),
+                                                 (int) (blanco.origen_t - St.tex.origen_t));
+    agregar.alpha = GS_SETREG_ALPHA(0, 2, 0, 1, 0);
+    agregar.prim = (agregar.prim | (1 << 6)) & ~(1u << 5); /* ABE si, FGE no */
+    gs_aplicar_estado(&agregar);
+    a2.r = b2.r = limitar_u8(cv->ar);
+    a2.g = b2.g = limitar_u8(cv->ag);
+    a2.b = b2.b = limitar_u8(cv->ab);
+    if (!mezcla_alpha) {
+        a2.a = b2.a = 0x80; /* opaco: la cobertura la pone el alfa del texel */
+    }
+    gs_sprite(&a2, &b2);
+    St.gs = guardado;
+    gs_aplicar_estado(&St.gs);
+}
+
 static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
 {
     int ciclo = (St.om_h >> G_MDSFT_CYCLETYPE) & 3;
@@ -590,6 +651,9 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
         b.t = (t1 - t->ult * 0.25f + mitad + St.tex.origen_t) * St.tex.maceta_h_inv;
     }
     gs_sprite(&a, &b);
+    if (agregar_dividir && St.valido_tex && (cv.ar >= 0.5f || cv.ag >= 0.5f || cv.ab >= 0.5f)) {
+        agregar_pasada_rect(tile, &a, &b, &cv);
+    }
     St.sucio_estado = 1;
 }
 
@@ -710,7 +774,7 @@ static u32 serie_tarea;
 static int ultimo_usado_interp;         /* la tarea anterior mostro un intermedio */
 static u32 ultimo_vblank_tarea, ultimo_periodo;
 static u32 suma_periodos;
-static int racha_lento, retroceso;
+static int retroceso, bloqueo_interp; /* tareas a 30 FPS tras un tiron; 30 FPS hasta la proxima carrera */
 static u32 real_costo, interp_costo;  /* ciclos, media movil */
 static u32 ultimo_real;               /* ciclos del ultimo frame real */
 static u32 edad_interp;              /* tareas desde la ultima medida del intermedio */

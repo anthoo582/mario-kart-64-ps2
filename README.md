@@ -11,10 +11,15 @@ Probado en PCSX2 (con BIOS real) y en Play!. Todavía sin probar en una PS2 real
 
 - Las 20 pistas, los 8 personajes y todos los modos: Gran Premio, Contrarreloj,
   VS de 2 a 4 jugadores y Batalla.
+- Multitap de PS2: 3 y 4 jugadores con un multitap (SCPH-10090 o SCPH-70110).
 - Audio original: las muestras de la ROM mezcladas con la misma aritmética que
   la N64, con salida a 48 kHz.
-- Modo 60 FPS opcional (R3). Agrega un cuadro intermedio solo si la CPU libre
-  alcanza; la lógica sigue a 30 Hz como en el original.
+- 60 FPS de fábrica (R3 los apaga y los vuelve a prender). Agrega un cuadro
+  intermedio solo si sobra CPU con margen; la lógica sigue a 30 Hz como en el
+  original. Si en una carrera el intermedio provoca tirones, pasa a 30 FPS estables
+  (unos segundos, y desde el tercer tirón hasta la carrera siguiente).
+- 2 a 4 jugadores: si una imagen tarda más de lo previsto, la física da un paso
+  más por imagen para que la carrera no vaya en cámara lenta.
 - Guardado en Memory Card.
 - Pantalla de fallo con el estado de cada hilo si el juego se cuelga.
 
@@ -43,6 +48,7 @@ make iso
 | `make DEBUG=1 DEBUG_AUDIO=1` | DEBUG + página de audio en el panel |
 | `make MONOLITICO=1` | Un solo ELF con toda la ROM adentro (uLaunchELF sin ISO) |
 | `make EXTRA_DEFINES=-DFILTRADO_TEXTURAS=0` | Texturas sin suavizado (vecino más cercano) |
+| `make DEV=1 EXTRA_DEFINES=-DSMK64_DIAG_CC` | DEV + registro de los colores que el GS no reproduce igual que el RDP |
 | `make test` | Pruebas en el PC (combinador de color, caminos del tren y del barco) |
 | `make clean` | Borra `build/` |
 
@@ -70,6 +76,20 @@ make iso
 | C arriba / abajo | Triángulo / Círculo |
 | C izquierda / derecha | Stick derecho |
 | — | R3: 60 FPS sí/no · L3 + R3: panel (solo DEBUG) |
+
+### Multitap
+
+Cada jugador queda fijo a su conector, aunque otro mando se desconecte:
+
+| Multitap | Jugador 1 | Jugador 2 | Jugador 3 | Jugador 4 |
+|---|---|---|---|---|
+| En el puerto 1 | 1-A | 1-B | 1-C | 1-D |
+| Solo en el puerto 2 | Puerto 1 | 2-A | 2-B | 2-C |
+| Sin multitap | Puerto 1 | Puerto 2 | — | — |
+
+El multitap se detecta al arrancar y se vuelve a comprobar una vez por segundo. Usa
+los módulos XSIO2MAN, XPADMAN, XMTAPMAN, XMCMAN y XMCSERV de la BIOS; si la BIOS no
+los trae, el juego carga SIO2MAN y PADMAN y funciona con dos mandos.
 
 ## Estructura
 
