@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_kalimari_desert_vertice
-.incbin "build/ps2/recursos/pistas/kalimari_desert/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_kalimari_desert_empaquetado
-.incbin "build/ps2/recursos/pistas/kalimari_desert/listas_empaquetadas.inc.bin"
-.balign 0x10

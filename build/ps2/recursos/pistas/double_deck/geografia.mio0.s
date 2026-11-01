@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_double_deck_vertice
-.incbin "build/ps2/recursos/pistas/double_deck/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_double_deck_empaquetado
-.incbin "build/ps2/recursos/pistas/double_deck/listas_empaquetadas.inc.bin"
-.balign 0x10

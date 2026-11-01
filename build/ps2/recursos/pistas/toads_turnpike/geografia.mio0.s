@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_toads_turnpike_vertice
-.incbin "build/ps2/recursos/pistas/toads_turnpike/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_toads_turnpike_empaquetado
-.incbin "build/ps2/recursos/pistas/toads_turnpike/listas_empaquetadas.inc.bin"
-.balign 0x10

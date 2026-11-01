@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_dks_jungle_parkway_vertice
-.incbin "build/ps2/recursos/pistas/dks_jungle_parkway/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_dks_jungle_parkway_empaquetado
-.incbin "build/ps2/recursos/pistas/dks_jungle_parkway/listas_empaquetadas.inc.bin"
-.balign 0x10

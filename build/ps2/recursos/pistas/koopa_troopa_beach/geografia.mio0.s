@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_koopa_troopa_beach_vertice
-.incbin "build/ps2/recursos/pistas/koopa_troopa_beach/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_koopa_troopa_beach_empaquetado
-.incbin "build/ps2/recursos/pistas/koopa_troopa_beach/listas_empaquetadas.inc.bin"
-.balign 0x10

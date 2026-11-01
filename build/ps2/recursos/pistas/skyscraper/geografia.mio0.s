@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_skyscraper_vertice
-.incbin "build/ps2/recursos/pistas/skyscraper/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_skyscraper_empaquetado
-.incbin "build/ps2/recursos/pistas/skyscraper/listas_empaquetadas.inc.bin"
-.balign 0x10

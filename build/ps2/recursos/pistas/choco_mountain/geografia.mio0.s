@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_choco_mountain_vertice
-.incbin "build/ps2/recursos/pistas/choco_mountain/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_choco_mountain_empaquetado
-.incbin "build/ps2/recursos/pistas/choco_mountain/listas_empaquetadas.inc.bin"
-.balign 0x10
