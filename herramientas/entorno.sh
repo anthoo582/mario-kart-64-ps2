@@ -1,5 +1,5 @@
 # Carga el toolchain de PS2: . herramientas/entorno.sh
-: "${PS2DEV:=/usr/local/ps2dev}"
+# : "${PS2DEV:=/usr/local/ps2dev}"
 if [ ! -x "$PS2DEV/ee/bin/mips64r5900el-ps2-elf-gcc" ]; then
     echo "entorno.sh: no hay toolchain de PS2 en $PS2DEV" >&2
     return 1 2>/dev/null || exit 1

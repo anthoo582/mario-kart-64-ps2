@@ -1,8 +1,7 @@
 build/ps2/codigo/depuracion/depuracion.o: codigo/depuracion/depuracion.c \
- /usr/local/ps2dev/ps2sdk/ee/include/kernel.h \
- /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
- /usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
  incluir/depuracion/depuracion_juego.h incluir/libultra/ultra64.h \
  incluir/libultra/PR/ultratypes.h incluir/libultra/PR/os_exception.h \
  incluir/libultra/PR/os_misc.h incluir/libultra/PR/os_rdp.h \
@@ -19,15 +18,14 @@ build/ps2/codigo/depuracion/depuracion.o: codigo/depuracion/depuracion.c \
  incluir/libultra/PR/os_ai.h incluir/libultra/PR/libaudio.h \
  incluir/libultra/PR/abi.h incluir/libultra/PR/libultra.h \
  incluir/juego/definiciones.h \
- /usr/local/ps2dev/ps2sdk/ee/include/ee_debug.h \
- /usr/local/ps2dev/ps2sdk/common/include/ee_cop0_defs.h \
- /usr/local/ps2dev/ps2sdk/common/include/ps2_debug.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/ee_debug.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/ee_cop0_defs.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/ps2_debug.h \
  incluir/graficos/interprete_f3dex.h incluir/sistema/sistema_ps2.h \
  incluir/sistema/cronometro_fases.h
-/usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
-/usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
-/usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
 incluir/depuracion/depuracion_juego.h:
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
@@ -59,9 +57,9 @@ incluir/libultra/PR/libaudio.h:
 incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
 incluir/juego/definiciones.h:
-/usr/local/ps2dev/ps2sdk/ee/include/ee_debug.h:
-/usr/local/ps2dev/ps2sdk/common/include/ee_cop0_defs.h:
-/usr/local/ps2dev/ps2sdk/common/include/ps2_debug.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/ee_debug.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/ee_cop0_defs.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/ps2_debug.h:
 incluir/graficos/interprete_f3dex.h:
 incluir/sistema/sistema_ps2.h:
 incluir/sistema/cronometro_fases.h:

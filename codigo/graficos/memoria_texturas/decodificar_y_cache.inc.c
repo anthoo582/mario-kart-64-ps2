@@ -198,8 +198,8 @@ static u32 edad_franja(u32 c0, u32 cols, u32 y, u32 h)
 void tmem_empezar_frame(void)
 {
     if (renglones_atlas == 0) {
-        u32 base = gs_vram_inicio_texturas();
-        u32 renglones = (gs_vram_fin_texturas() - base) / (ATLAS_TBW * 8192) * 32; /* filas de paginas enteras */
+        u32 base = gs_vram_texture_start();
+        u32 renglones = (gs_vram_texture_end() - base) / (ATLAS_TBW * 8192) * 32; /* filas de paginas enteras */
 
         atlas_tbp = base / 256;
         renglones_atlas = renglones > ATLAS_MAX_H ? ATLAS_MAX_H : renglones;
@@ -895,7 +895,7 @@ static int preparar_ci(const TileRdp *tile, int tlut_modo, int banderas, u32 dec
                 dst[s / 8] = (y & 1) ? intercambiar_mitades(v) : v;
             }
         }
-        subir_imagen_gs(ci_tbp + ii * 8, 2, GS_PSM_T8, 0, 0, ci_buf, decrementar_w, decrementar_h, decrementar_w * decrementar_h);
+        gs_upload_image(ci_tbp + ii * 8, 2, GS_PSM_T8, 0, 0, ci_buf, decrementar_w, decrementar_h, decrementar_w * decrementar_h);
         ci_idx[ii].key = clave_idx;
         ci_idx[ii].clave2 = clave_idx_2;
         ci_idx[ii].valido = 1;
@@ -912,7 +912,7 @@ static int preparar_ci(const TileRdp *tile, int tlut_modo, int banderas, u32 dec
 
             ci_clut_buf[pos] = ((tlut_modo == 3) ? from_ia16(e) : desde_rgba16(e)) | blanco;
         }
-        subir_imagen_gs(ci_tbp + CI_CLUT_BASE + ci * 4, 1, GS_PSM_CT32, 0, 0, ci_clut_buf, 16, 16, 1024);
+        gs_upload_image(ci_tbp + CI_CLUT_BASE + ci * 4, 1, GS_PSM_CT32, 0, 0, ci_clut_buf, 16, 16, 1024);
         ci_clut[ci].key = clave_pal;
         ci_clut[ci].clave2 = clave_pal_2;
         ci_clut[ci].valido = 1;

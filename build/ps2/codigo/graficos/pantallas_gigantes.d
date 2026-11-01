@@ -14,21 +14,21 @@ build/ps2/codigo/graficos/pantallas_gigantes.o: \
  incluir/libultra/PR/gu.h incluir/juego/estructuras_comunes.h \
  incluir/libultra/PR/os_ai.h incluir/libultra/PR/libaudio.h \
  incluir/libultra/PR/abi.h incluir/libultra/PR/libultra.h \
- /usr/local/ps2dev/gsKit/include/gsKit.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
- /usr/local/ps2dev/gsKit/include/dmaKit.h \
- /usr/local/ps2dev/gsKit/include/dmaCore.h \
- /usr/local/ps2dev/gsKit/include/dmaInit.h \
- /usr/local/ps2dev/gsKit/include/dmaSpr.h \
- /usr/local/ps2dev/gsKit/include/gsInit.h \
- /usr/local/ps2dev/gsKit/include/gsKit.h \
- /usr/local/ps2dev/gsKit/include/gsMisc.h \
- /usr/local/ps2dev/gsKit/include/gsCore.h \
- /usr/local/ps2dev/gsKit/include/gsPrimitive.h \
- /usr/local/ps2dev/gsKit/include/gsTexture.h \
- /usr/local/ps2dev/gsKit/include/gsFontM.h \
- /usr/local/ps2dev/gsKit/include/gsHires.h \
- /usr/local/ps2dev/gsKit/include/gsTexManager.h \
+ /Users/oliver/ps2dev/gsKit/include/gsKit.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
+ /Users/oliver/ps2dev/gsKit/include/dmaKit.h \
+ /Users/oliver/ps2dev/gsKit/include/dmaCore.h \
+ /Users/oliver/ps2dev/gsKit/include/dmaInit.h \
+ /Users/oliver/ps2dev/gsKit/include/dmaSpr.h \
+ /Users/oliver/ps2dev/gsKit/include/gsInit.h \
+ /Users/oliver/ps2dev/gsKit/include/gsKit.h \
+ /Users/oliver/ps2dev/gsKit/include/gsMisc.h \
+ /Users/oliver/ps2dev/gsKit/include/gsCore.h \
+ /Users/oliver/ps2dev/gsKit/include/gsPrimitive.h \
+ /Users/oliver/ps2dev/gsKit/include/gsTexture.h \
+ /Users/oliver/ps2dev/gsKit/include/gsFontM.h \
+ /Users/oliver/ps2dev/gsKit/include/gsHires.h \
+ /Users/oliver/ps2dev/gsKit/include/gsTexManager.h \
  incluir/graficos/sintetizador_gs.h incluir/graficos/pantallas_gigantes.h \
  incluir/graficos/memoria_texturas.h
 incluir/libultra/ultra64.h:
@@ -60,21 +60,21 @@ incluir/libultra/PR/os_ai.h:
 incluir/libultra/PR/libaudio.h:
 incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
-/usr/local/ps2dev/gsKit/include/gsKit.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
-/usr/local/ps2dev/gsKit/include/dmaKit.h:
-/usr/local/ps2dev/gsKit/include/dmaCore.h:
-/usr/local/ps2dev/gsKit/include/dmaInit.h:
-/usr/local/ps2dev/gsKit/include/dmaSpr.h:
-/usr/local/ps2dev/gsKit/include/gsInit.h:
-/usr/local/ps2dev/gsKit/include/gsKit.h:
-/usr/local/ps2dev/gsKit/include/gsMisc.h:
-/usr/local/ps2dev/gsKit/include/gsCore.h:
-/usr/local/ps2dev/gsKit/include/gsPrimitive.h:
-/usr/local/ps2dev/gsKit/include/gsTexture.h:
-/usr/local/ps2dev/gsKit/include/gsFontM.h:
-/usr/local/ps2dev/gsKit/include/gsHires.h:
-/usr/local/ps2dev/gsKit/include/gsTexManager.h:
+/Users/oliver/ps2dev/gsKit/include/gsKit.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/gsKit/include/dmaKit.h:
+/Users/oliver/ps2dev/gsKit/include/dmaCore.h:
+/Users/oliver/ps2dev/gsKit/include/dmaInit.h:
+/Users/oliver/ps2dev/gsKit/include/dmaSpr.h:
+/Users/oliver/ps2dev/gsKit/include/gsInit.h:
+/Users/oliver/ps2dev/gsKit/include/gsKit.h:
+/Users/oliver/ps2dev/gsKit/include/gsMisc.h:
+/Users/oliver/ps2dev/gsKit/include/gsCore.h:
+/Users/oliver/ps2dev/gsKit/include/gsPrimitive.h:
+/Users/oliver/ps2dev/gsKit/include/gsTexture.h:
+/Users/oliver/ps2dev/gsKit/include/gsFontM.h:
+/Users/oliver/ps2dev/gsKit/include/gsHires.h:
+/Users/oliver/ps2dev/gsKit/include/gsTexManager.h:
 incluir/graficos/sintetizador_gs.h:
 incluir/graficos/pantallas_gigantes.h:
 incluir/graficos/memoria_texturas.h:

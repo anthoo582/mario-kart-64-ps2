@@ -36,7 +36,7 @@ build/ps2/codigo/sistema/bucle_principal.o: \
  incluir/carrera/actores.h incluir/carrera/repeticiones.h \
  incluir/depuracion/depuracion_juego.h incluir/sistema/pantalla_fallo.h \
  incluir/memoria/buffer_salida_graficos.h incluir/sistema/perfilado.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
  codigo/sistema/bucle_principal/tareas_y_mandos.inc.c \
  codigo/sistema/bucle_principal/hilos_video_y_audio.inc.c
 incluir/libultra/ultra64.h:
@@ -110,6 +110,6 @@ incluir/depuracion/depuracion_juego.h:
 incluir/sistema/pantalla_fallo.h:
 incluir/memoria/buffer_salida_graficos.h:
 incluir/sistema/perfilado.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
 codigo/sistema/bucle_principal/tareas_y_mandos.inc.c:
 codigo/sistema/bucle_principal/hilos_video_y_audio.inc.c:

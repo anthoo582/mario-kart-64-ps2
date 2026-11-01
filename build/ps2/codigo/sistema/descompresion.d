@@ -14,7 +14,7 @@ build/ps2/codigo/sistema/descompresion.o: codigo/sistema/descompresion.c \
  incluir/juego/estructuras_comunes.h incluir/libultra/PR/os_ai.h \
  incluir/libultra/PR/libaudio.h incluir/libultra/PR/abi.h \
  incluir/libultra/PR/libultra.h incluir/graficos/memoria_texturas.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
  incluir/sistema/sistema_ps2.h
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
@@ -46,5 +46,5 @@ incluir/libultra/PR/libaudio.h:
 incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
 incluir/graficos/memoria_texturas.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
 incluir/sistema/sistema_ps2.h:

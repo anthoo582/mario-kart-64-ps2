@@ -16,7 +16,7 @@ build/ps2/codigo/sistema/tareas_rsp.o: codigo/sistema/tareas_rsp.c \
  incluir/libultra/PR/libultra.h incluir/libultra/PR/os.h \
  incluir/sistema/sistema_ps2.h incluir/graficos/interprete_f3dex.h \
  incluir/audio/salida_audio.h incluir/sistema/perfilado.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
 incluir/libultra/PR/os_exception.h:
@@ -51,4 +51,4 @@ incluir/sistema/sistema_ps2.h:
 incluir/graficos/interprete_f3dex.h:
 incluir/audio/salida_audio.h:
 incluir/sistema/perfilado.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:

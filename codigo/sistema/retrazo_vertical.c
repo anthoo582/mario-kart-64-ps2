@@ -24,13 +24,13 @@ static OSMesg mens_audio;
 
 extern void *_gp;
 
-void gs_en_vblank(void);
+void gs_on_vblank(void);
 
 static s32 manejador_vblank(s32 causa)
 {
     (void) causa;
     cantidad_vblank++;
-    gs_en_vblank(); /* cambio de framebuffer, como el VI del N64 */
+    gs_on_vblank(); /* cambio de framebuffer, como el VI del N64 */
     iSignalSema(vi_sema);
     ExitHandler();
     return 0;

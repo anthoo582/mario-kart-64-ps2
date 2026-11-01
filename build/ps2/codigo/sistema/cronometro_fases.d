@@ -15,7 +15,7 @@ build/ps2/codigo/sistema/cronometro_fases.o: \
  incluir/libultra/PR/os_ai.h incluir/libultra/PR/libaudio.h \
  incluir/libultra/PR/abi.h incluir/libultra/PR/libultra.h \
  incluir/sistema/sistema_ps2.h incluir/sistema/cronometro_fases.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
 incluir/libultra/PR/os_exception.h:
@@ -47,4 +47,4 @@ incluir/libultra/PR/abi.h:
 incluir/libultra/PR/libultra.h:
 incluir/sistema/sistema_ps2.h:
 incluir/sistema/cronometro_fases.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:

@@ -1,8 +1,7 @@
 build/ps2/codigo/sistema/hilos.o: codigo/sistema/hilos.c \
- /usr/local/ps2dev/ps2sdk/ee/include/kernel.h \
- /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
- /usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
  incluir/libultra/ultra64.h incluir/libultra/PR/ultratypes.h \
  incluir/libultra/PR/os_exception.h incluir/libultra/PR/os_misc.h \
  incluir/libultra/PR/os_rdp.h incluir/libultra/PR/os_thread.h \
@@ -19,10 +18,9 @@ build/ps2/codigo/sistema/hilos.o: codigo/sistema/hilos.c \
  incluir/libultra/PR/libaudio.h incluir/libultra/PR/abi.h \
  incluir/libultra/PR/libultra.h incluir/libultra/PR/os.h \
  incluir/sistema/sistema_ps2.h
-/usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
-/usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
-/usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
 incluir/libultra/PR/os_exception.h:

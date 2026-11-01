@@ -123,7 +123,7 @@ static int preparar_impl_tmem(int indice_tile, int tlut_modo, int banderas, Info
                                            envolver_t ? ay : ay + decrementar_h - 1);
             }
             e->valido = 1;
-            subir_rect_textura_gs(atlas_tbp, ATLAS_TBW, ax, ay, decodificacion, arriba_w, decrementar_h);
+            gs_upload_texture_rect(atlas_tbp, ATLAS_TBW, ax, ay, decodificacion, arriba_w, decrementar_h);
         }
         estadisticas_tmem.decodificaciones++;
         FIN_PROF(DECODIFICACION_PROF);

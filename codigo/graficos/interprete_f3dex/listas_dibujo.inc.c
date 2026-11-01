@@ -279,15 +279,15 @@ static void ejecutar_dl(Gfx *dl)
                 St.profundidad_prim = w1;
                 break;
             case G_SETSCISSOR: {
-                float sx = GS_ANCHO / 320.0f, sy = GS_ALTO / 240.0f;
+                float sx = GS_WIDTH / 320.0f, sy = GS_HEIGHT / 240.0f;
                 int viejo[4] = { St.tijera[0], St.tijera[1], St.tijera[2], St.tijera[3] };
 
                 St.tijera[0] = (int) (((w0 >> 12) & 0xFFF) * 0.25f * sx);
                 St.tijera[1] = (int) ((w0 & 0xFFF) * 0.25f * sy);
                 St.tijera[2] = (int) (((w1 >> 12) & 0xFFF) * 0.25f * sx);
                 St.tijera[3] = (int) ((w1 & 0xFFF) * 0.25f * sy);
-                if (St.tijera[2] > GS_ANCHO) St.tijera[2] = GS_ANCHO;
-                if (St.tijera[3] > GS_ALTO) St.tijera[3] = GS_ALTO;
+                if (St.tijera[2] > GS_WIDTH) St.tijera[2] = GS_WIDTH;
+                if (St.tijera[3] > GS_HEIGHT) St.tijera[3] = GS_HEIGHT;
                 if (St.tijera[2] <= St.tijera[0]) St.tijera[2] = St.tijera[0] + 1;
                 if (St.tijera[3] <= St.tijera[1]) St.tijera[3] = St.tijera[1] + 1;
 #ifdef SMK64_DEV
@@ -390,7 +390,7 @@ void inicializar_renderizador(void)
     /* Valores por defecto del microcodigo */
     St.mirada[0][0] = 127;
     St.mirada[1][1] = 127;
-    gs_inicializar();
+    gs_init();
     tmem_inicializar();
 }
 
@@ -420,8 +420,8 @@ static void reiniciar_estado_rsp(void)
     St.vp_trans[2] = 511.0f;
     St.tijera[0] = 0;
     St.tijera[1] = 0;
-    St.tijera[2] = GS_ANCHO;
-    St.tijera[3] = GS_ALTO;
+    St.tijera[2] = GS_WIDTH;
+    St.tijera[3] = GS_HEIGHT;
     St.sucio_estado = 1;
 }
 
@@ -442,9 +442,9 @@ static void dibujar_overlay_dev(void)
                                    { 0xFF, 0, 0 }, { 0, 0xFF, 0 }, { 0, 0, 0xFF }, { 0x20, 0x20, 0x20 } };
     int i;
 
-    gs_rellenar_rectangulo(0, 0, 16, 16, 0xFF, 0x00, 0xFF);
+    gs_fill_rect(0, 0, 16, 16, 0xFF, 0x00, 0xFF);
     for (i = 0; i < 8; i++) {
-        gs_rellenar_rectangulo(i * 80, GS_ALTO - 24, i * 80 + 80, GS_ALTO, barras[i][0], barras[i][1], barras[i][2]);
+        gs_fill_rect(i * 80, GS_HEIGHT - 24, i * 80 + 80, GS_HEIGHT, barras[i][0], barras[i][1], barras[i][2]);
     }
 }
 #else
@@ -466,7 +466,7 @@ static inline u32 ema(u32 avg, u32 muestra)
 static void cancelar_gancho_interp(void)
 {
     interp_planned = 0;
-    redirigir_paquete_gs(REAL_PAQUETE_GS, s_disp ^ 1);
+    gs_retarget_packet(GS_PACKET_REAL, s_disp ^ 1);
 }
 
 /* Se dibuja el intermedio si */

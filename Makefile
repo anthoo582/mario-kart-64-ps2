@@ -212,12 +212,19 @@ all: elf
 
 elf: $(ELF)
 
-ISO_NAME := compilaciones/SLUS_999.99.SuperMarioKart64$(if $(filter 1,$(DEBUG)),_DEBUG).iso
+# ISO: recursos/disco (SYSTEM.CNF) + ELF + ROM, empaquetado con mkisofs
+ISO_BASE     := SLUS_999.99.SuperMarioKart64$(if $(filter 1,$(DEBUG)),_DEBUG).iso
+ISO_NAME     := compilaciones/$(ISO_BASE)
+ISO_STAGE    := $(OBJDIR)/iso
+ISO_OPL      := compilaciones/disco/OPL/CD
 iso: $(ELF)
-	$(V)ISO_ROM=$(if $(filter 1,$(ROM_STREAM)),$(OBJDIR)/SMK64ROM.BIN) \
-	    ISO_NOMBRE_OPL=SLUS_999.99.SuperMarioKart64$(if $(filter 1,$(DEBUG)),_DEBUG).iso \
-	    ISO_CONTENIDO=compilaciones/disco/contenido$(if $(filter 1,$(DEBUG)),_debug) \
-	    sh herramientas/crear_iso.sh $(OBJDIR)/SLUS_999.99 $(ISO_NAME)
+	@echo "  ISO     $(ISO_NAME)"
+	$(V)rm -rf $(ISO_STAGE) && cp -r recursos/disco $(ISO_STAGE)
+	$(V)cp $(OBJDIR)/SLUS_999.99 $(ISO_STAGE)/SLUS_999.99
+	$(if $(filter 1,$(ROM_STREAM)),$(V)cp $(OBJDIR)/SMK64ROM.BIN $(ISO_STAGE)/SMK64ROM.BIN)
+	$(V)mkdir -p $(ISO_OPL)
+	$(V)mkisofs -quiet -o $(ISO_NAME) -iso-level 2 -V SMK64_PS2 $(ISO_STAGE)/
+	$(V)cp $(ISO_NAME) $(ISO_OPL)/$(ISO_BASE)
 
 herramientas: $(MIO0TOOL) $(DLPACKER)
 

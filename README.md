@@ -28,7 +28,7 @@ Probado en PCSX2 (con BIOS real) y en Play!. Todavía sin probar en una PS2 real
 - Toolchain de PS2 ([ps2dev](https://github.com/ps2dev/ps2dev)): `mips64r5900el-ps2-elf-gcc`,
   ps2sdk y gsKit, instalados en `/usr/local/ps2dev` o en `$PS2DEV`.
 - `gcc`, `make`, `python3` e `iconv` en el PC.
-- `genisoimage`, solo para `make iso`.
+- `mkisofs` (cdrtools; `brew install cdrtools` en macOS), solo para `make iso`.
 
 ## Compilar
 

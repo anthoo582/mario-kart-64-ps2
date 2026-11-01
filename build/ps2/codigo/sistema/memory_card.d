@@ -1,18 +1,17 @@
 build/ps2/codigo/sistema/memory_card.o: codigo/sistema/memory_card.c \
- /usr/local/ps2dev/ps2sdk/ee/include/delaythread.h \
- /usr/local/ps2dev/ps2sdk/common/include/tamtypes.h \
- /usr/local/ps2dev/ps2sdk/ee/include/timer.h \
- /usr/local/ps2dev/ps2sdk/ee/include/kernel.h \
- /usr/local/ps2dev/ps2sdk/ee/include/sifdma.h \
- /usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h \
- /usr/local/ps2dev/ps2sdk/ee/include/libmc.h \
- /usr/local/ps2dev/ps2sdk/common/include/libmc-common.h \
- /usr/local/ps2dev/ps2sdk/common/include/errno.h \
- /usr/local/ps2dev/ps2sdk/ee/include/sifrpc.h \
- /usr/local/ps2dev/ps2sdk/common/include/sifrpc-common.h \
- /usr/local/ps2dev/ps2sdk/common/include/sifcmd-common.h \
- /usr/local/ps2dev/ps2sdk/ee/include/loadfile.h \
- /usr/local/ps2dev/ps2sdk/common/include/loadfile-common.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/delaythread.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/timer.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/libmc.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/libmc-common.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/errno.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/loadfile.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/loadfile-common.h \
+ /Users/oliver/ps2dev/ps2sdk/ee/include/sifrpc.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/sifrpc-common.h \
+ /Users/oliver/ps2dev/ps2sdk/common/include/sifcmd-common.h \
  incluir/libultra/ultra64.h incluir/libultra/PR/ultratypes.h \
  incluir/libultra/PR/os_exception.h incluir/libultra/PR/os_misc.h \
  incluir/libultra/PR/os_rdp.h incluir/libultra/PR/os_thread.h \
@@ -30,20 +29,19 @@ build/ps2/codigo/sistema/memory_card.o: codigo/sistema/memory_card.c \
  incluir/libultra/PR/libultra.h incluir/sistema/sistema_ps2.h \
  incluir/entrada/multitap.h incluir/sistema/guardado_ps2.h \
  incluir/sistema/cronometro_fases.h
-/usr/local/ps2dev/ps2sdk/ee/include/delaythread.h:
-/usr/local/ps2dev/ps2sdk/common/include/tamtypes.h:
-/usr/local/ps2dev/ps2sdk/ee/include/timer.h:
-/usr/local/ps2dev/ps2sdk/ee/include/kernel.h:
-/usr/local/ps2dev/ps2sdk/ee/include/sifdma.h:
-/usr/local/ps2dev/ps2sdk/common/include/mipscopaccess.h:
-/usr/local/ps2dev/ps2sdk/ee/include/libmc.h:
-/usr/local/ps2dev/ps2sdk/common/include/libmc-common.h:
-/usr/local/ps2dev/ps2sdk/common/include/errno.h:
-/usr/local/ps2dev/ps2sdk/ee/include/sifrpc.h:
-/usr/local/ps2dev/ps2sdk/common/include/sifrpc-common.h:
-/usr/local/ps2dev/ps2sdk/common/include/sifcmd-common.h:
-/usr/local/ps2dev/ps2sdk/ee/include/loadfile.h:
-/usr/local/ps2dev/ps2sdk/common/include/loadfile-common.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/delaythread.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/tamtypes.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/timer.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/kernel.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/sifdma.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/libmc.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/libmc-common.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/errno.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/loadfile.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/loadfile-common.h:
+/Users/oliver/ps2dev/ps2sdk/ee/include/sifrpc.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/sifrpc-common.h:
+/Users/oliver/ps2dev/ps2sdk/common/include/sifcmd-common.h:
 incluir/libultra/ultra64.h:
 incluir/libultra/PR/ultratypes.h:
 incluir/libultra/PR/os_exception.h:

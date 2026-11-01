@@ -1514,14 +1514,14 @@ Linker script and memory map
  .data          0x0025fd00    0x23170 build/ps2/codigo/datos/secuencias_musica.o
                 0x0025fd00                musica_secuencia_tabla_cabecera
                 0x0025fd04                tabla_secuencia_musica
-                0x0025fe00                sec_00
                 0x0025fe00                musica_secuencia_tabla_fin
+                0x0025fe00                sec_00
                 0x00262630                sec_00_fin
                 0x00262630                sec_01
-                0x00264160                sec_01_fin
                 0x00264160                sec_02
-                0x00264ec0                sec_02_fin
+                0x00264160                sec_01_fin
                 0x00264ec0                sec_03
+                0x00264ec0                sec_02_fin
                 0x002668d0                sec_03_fin
                 0x002668d0                sec_04
                 0x00268570                sec_05
@@ -1532,46 +1532,46 @@ Linker script and memory map
                 0x0026c3c0                sec_07
                 0x0026da90                sec_07_fin
                 0x0026da90                sec_08
-                0x0026fe60                sec_09
                 0x0026fe60                sec_08_fin
+                0x0026fe60                sec_09
                 0x00271660                sec_09_fin
                 0x00271660                sec_0A
                 0x00273140                sec_0A_fin
                 0x00273140                sec_0B
-                0x00273730                sec_0B_fin
                 0x00273730                sec_0C
-                0x00273b00                sec_0D
+                0x00273730                sec_0B_fin
                 0x00273b00                sec_0C_fin
-                0x00273e60                sec_0D_fin
+                0x00273b00                sec_0D
                 0x00273e60                sec_0E
-                0x00274140                sec_0F
+                0x00273e60                sec_0D_fin
                 0x00274140                sec_0E_fin
-                0x00274600                sec_10
+                0x00274140                sec_0F
                 0x00274600                sec_0F_fin
-                0x00275a10                sec_11
+                0x00274600                sec_10
                 0x00275a10                sec_10_fin
-                0x002760f0                sec_11_fin
+                0x00275a10                sec_11
                 0x002760f0                sec_12
-                0x002793e0                sec_12_fin
+                0x002760f0                sec_11_fin
                 0x002793e0                sec_13
-                0x00279aa0                sec_13_fin
+                0x002793e0                sec_12_fin
                 0x00279aa0                sec_14
+                0x00279aa0                sec_13_fin
                 0x00279f50                sec_15
                 0x00279f50                sec_14_fin
                 0x0027b0b0                sec_16
                 0x0027b0b0                sec_15_fin
-                0x0027b3c0                sec_16_fin
                 0x0027b3c0                sec_17
-                0x0027c670                sec_18
+                0x0027b3c0                sec_16_fin
                 0x0027c670                sec_17_fin
+                0x0027c670                sec_18
                 0x0027cc70                sec_18_fin
                 0x0027cc70                sec_19
                 0x0027e350                sec_1A
                 0x0027e350                sec_19_fin
                 0x0027ee20                sec_1B
                 0x0027ee20                sec_1A_fin
-                0x0027faa0                sec_1B_fin
                 0x0027faa0                sec_1C
+                0x0027faa0                sec_1B_fin
                 0x002821f0                sec_1C_fin
                 0x002821f0                sec_1D
                 0x00282e70                sec_1D_fin
@@ -2165,26 +2165,26 @@ Linker script and memory map
                 0x0a000000                textura_mario_cara_00
                 0x0a000cd4                textura_mario_cara_00_fin
                 0x0a000cd4                textura_mario_cara_01
-                0x0a001994                textura_mario_cara_02
                 0x0a001994                textura_mario_cara_01_fin
+                0x0a001994                textura_mario_cara_02
                 0x0a002650                textura_mario_cara_02_fin
                 0x0a002650                textura_mario_cara_03
                 0x0a0032bc                textura_mario_cara_03_fin
                 0x0a0032bc                textura_mario_cara_04
-                0x0a003f08                textura_mario_cara_04_fin
                 0x0a003f08                textura_mario_cara_05
-                0x0a004b48                textura_mario_cara_06
+                0x0a003f08                textura_mario_cara_04_fin
                 0x0a004b48                textura_mario_cara_05_fin
+                0x0a004b48                textura_mario_cara_06
                 0x0a00585c                textura_mario_cara_07
                 0x0a00585c                textura_mario_cara_06_fin
                 0x0a006568                textura_mario_cara_08
                 0x0a006568                textura_mario_cara_07_fin
-                0x0a00726c                textura_mario_cara_08_fin
                 0x0a00726c                textura_mario_cara_09
+                0x0a00726c                textura_mario_cara_08_fin
                 0x0a007f4c                textura_mario_cara_09_fin
                 0x0a007f4c                textura_mario_cara_10
-                0x0a008c48                textura_mario_cara_10_fin
                 0x0a008c48                textura_mario_cara_11
+                0x0a008c48                textura_mario_cara_10_fin
                 0x0a009944                textura_mario_cara_12
                 0x0a009944                textura_mario_cara_11_fin
                 0x0a00a688                textura_mario_cara_12_fin
@@ -2193,212 +2193,212 @@ Linker script and memory map
                 0x0a00b3dc                textura_mario_cara_13_fin
                 0x0a00c180                textura_mario_cara_14_fin
                 0x0a00c180                textura_mario_cara_15
-                0x0a00cf20                textura_mario_cara_15_fin
                 0x0a00cf20                textura_mario_cara_16
+                0x0a00cf20                textura_mario_cara_15_fin
                 0x0a00da64                textura_luigi_cara_00
                 0x0a00da64                textura_mario_cara_16_fin
                 0x0a00e680                textura_luigi_cara_00_fin
                 0x0a00e680                textura_luigi_cara_01
-                0x0a00f2a0                textura_luigi_cara_02
                 0x0a00f2a0                textura_luigi_cara_01_fin
+                0x0a00f2a0                textura_luigi_cara_02
                 0x0a00fec0                textura_luigi_cara_03
                 0x0a00fec0                textura_luigi_cara_02_fin
                 0x0a010aa8                textura_luigi_cara_04
                 0x0a010aa8                textura_luigi_cara_03_fin
-                0x0a011690                textura_luigi_cara_05
                 0x0a011690                textura_luigi_cara_04_fin
-                0x0a01225c                textura_luigi_cara_05_fin
+                0x0a011690                textura_luigi_cara_05
                 0x0a01225c                textura_luigi_cara_06
+                0x0a01225c                textura_luigi_cara_05_fin
                 0x0a012e84                textura_luigi_cara_06_fin
                 0x0a012e84                textura_luigi_cara_07
                 0x0a013ab8                textura_luigi_cara_08
                 0x0a013ab8                textura_luigi_cara_07_fin
                 0x0a014744                textura_luigi_cara_08_fin
                 0x0a014744                textura_luigi_cara_09
-                0x0a0153c4                textura_luigi_cara_09_fin
                 0x0a0153c4                textura_luigi_cara_10
+                0x0a0153c4                textura_luigi_cara_09_fin
                 0x0a016054                textura_luigi_cara_11
                 0x0a016054                textura_luigi_cara_10_fin
-                0x0a016d14                textura_luigi_cara_11_fin
                 0x0a016d14                textura_luigi_cara_12
+                0x0a016d14                textura_luigi_cara_11_fin
                 0x0a017a44                textura_luigi_cara_13
                 0x0a017a44                textura_luigi_cara_12_fin
-                0x0a018770                textura_luigi_cara_13_fin
                 0x0a018770                textura_luigi_cara_14
+                0x0a018770                textura_luigi_cara_13_fin
                 0x0a0194b8                textura_luigi_cara_15
                 0x0a0194b8                textura_luigi_cara_14_fin
-                0x0a01a20c                textura_luigi_cara_16
                 0x0a01a20c                textura_luigi_cara_15_fin
-                0x0a01ac44                textura_peach_cara_00
+                0x0a01a20c                textura_luigi_cara_16
                 0x0a01ac44                textura_luigi_cara_16_fin
+                0x0a01ac44                textura_peach_cara_00
                 0x0a01bafc                textura_peach_cara_01
                 0x0a01bafc                textura_peach_cara_00_fin
-                0x0a01c9a8                textura_peach_cara_02
                 0x0a01c9a8                textura_peach_cara_01_fin
-                0x0a01d864                textura_peach_cara_02_fin
+                0x0a01c9a8                textura_peach_cara_02
                 0x0a01d864                textura_peach_cara_03
+                0x0a01d864                textura_peach_cara_02_fin
                 0x0a01e71c                textura_peach_cara_03_fin
                 0x0a01e71c                textura_peach_cara_04
                 0x0a01f5a4                textura_peach_cara_05
                 0x0a01f5a4                textura_peach_cara_04_fin
                 0x0a020444                textura_peach_cara_05_fin
                 0x0a020444                textura_peach_cara_06
-                0x0a02130c                textura_peach_cara_06_fin
                 0x0a02130c                textura_peach_cara_07
-                0x0a0221fc                textura_peach_cara_07_fin
+                0x0a02130c                textura_peach_cara_06_fin
                 0x0a0221fc                textura_peach_cara_08
+                0x0a0221fc                textura_peach_cara_07_fin
                 0x0a02310c                textura_peach_cara_08_fin
                 0x0a02310c                textura_peach_cara_09
                 0x0a0240c0                textura_peach_cara_10
                 0x0a0240c0                textura_peach_cara_09_fin
-                0x0a0250a4                textura_peach_cara_11
                 0x0a0250a4                textura_peach_cara_10_fin
-                0x0a0260f0                textura_peach_cara_12
+                0x0a0250a4                textura_peach_cara_11
                 0x0a0260f0                textura_peach_cara_11_fin
+                0x0a0260f0                textura_peach_cara_12
                 0x0a027128                textura_peach_cara_12_fin
                 0x0a027128                textura_peach_cara_13
                 0x0a02810c                textura_peach_cara_14
                 0x0a02810c                textura_peach_cara_13_fin
                 0x0a0290a0                textura_peach_cara_14_fin
                 0x0a0290a0                textura_peach_cara_15
-                0x0a02a028                textura_peach_cara_16
                 0x0a02a028                textura_peach_cara_15_fin
+                0x0a02a028                textura_peach_cara_16
                 0x0a02aed0                textura_toad_cara_00
                 0x0a02aed0                textura_peach_cara_16_fin
-                0x0a02b88c                textura_toad_cara_00_fin
                 0x0a02b88c                textura_toad_cara_01
+                0x0a02b88c                textura_toad_cara_00_fin
                 0x0a02c240                textura_toad_cara_01_fin
                 0x0a02c240                textura_toad_cara_02
                 0x0a02cbfc                textura_toad_cara_02_fin
                 0x0a02cbfc                textura_toad_cara_03
-                0x0a02d5b4                textura_toad_cara_03_fin
                 0x0a02d5b4                textura_toad_cara_04
-                0x0a02df70                textura_toad_cara_05
+                0x0a02d5b4                textura_toad_cara_03_fin
                 0x0a02df70                textura_toad_cara_04_fin
+                0x0a02df70                textura_toad_cara_05
                 0x0a02e910                textura_toad_cara_06
                 0x0a02e910                textura_toad_cara_05_fin
                 0x0a02f2a8                textura_toad_cara_06_fin
                 0x0a02f2a8                textura_toad_cara_07
-                0x0a02fc74                textura_toad_cara_07_fin
                 0x0a02fc74                textura_toad_cara_08
-                0x0a030628                textura_toad_cara_08_fin
+                0x0a02fc74                textura_toad_cara_07_fin
                 0x0a030628                textura_toad_cara_09
-                0x0a031010                textura_toad_cara_09_fin
+                0x0a030628                textura_toad_cara_08_fin
                 0x0a031010                textura_toad_cara_10
-                0x0a031a24                textura_toad_cara_11
+                0x0a031010                textura_toad_cara_09_fin
                 0x0a031a24                textura_toad_cara_10_fin
-                0x0a03247c                textura_toad_cara_11_fin
+                0x0a031a24                textura_toad_cara_11
                 0x0a03247c                textura_toad_cara_12
-                0x0a032edc                textura_toad_cara_13
+                0x0a03247c                textura_toad_cara_11_fin
                 0x0a032edc                textura_toad_cara_12_fin
-                0x0a03395c                textura_toad_cara_13_fin
+                0x0a032edc                textura_toad_cara_13
                 0x0a03395c                textura_toad_cara_14
-                0x0a0343d0                textura_toad_cara_14_fin
+                0x0a03395c                textura_toad_cara_13_fin
                 0x0a0343d0                textura_toad_cara_15
-                0x0a034e30                textura_toad_cara_16
+                0x0a0343d0                textura_toad_cara_14_fin
                 0x0a034e30                textura_toad_cara_15_fin
+                0x0a034e30                textura_toad_cara_16
                 0x0a035794                textura_yoshi_cara_00
                 0x0a035794                textura_toad_cara_16_fin
-                0x0a036280                textura_yoshi_cara_00_fin
                 0x0a036280                textura_yoshi_cara_01
+                0x0a036280                textura_yoshi_cara_00_fin
                 0x0a036d64                textura_yoshi_cara_01_fin
                 0x0a036d64                textura_yoshi_cara_02
-                0x0a037844                textura_yoshi_cara_02_fin
                 0x0a037844                textura_yoshi_cara_03
-                0x0a0382f8                textura_yoshi_cara_03_fin
+                0x0a037844                textura_yoshi_cara_02_fin
                 0x0a0382f8                textura_yoshi_cara_04
-                0x0a038d68                textura_yoshi_cara_04_fin
+                0x0a0382f8                textura_yoshi_cara_03_fin
                 0x0a038d68                textura_yoshi_cara_05
+                0x0a038d68                textura_yoshi_cara_04_fin
                 0x0a0397b0                textura_yoshi_cara_05_fin
                 0x0a0397b0                textura_yoshi_cara_06
                 0x0a03a2d4                textura_yoshi_cara_07
                 0x0a03a2d4                textura_yoshi_cara_06_fin
-                0x0a03ad00                textura_yoshi_cara_07_fin
                 0x0a03ad00                textura_yoshi_cara_08
-                0x0a03b6bc                textura_yoshi_cara_09
+                0x0a03ad00                textura_yoshi_cara_07_fin
                 0x0a03b6bc                textura_yoshi_cara_08_fin
+                0x0a03b6bc                textura_yoshi_cara_09
                 0x0a03c068                textura_yoshi_cara_10
                 0x0a03c068                textura_yoshi_cara_09_fin
                 0x0a03ca28                textura_yoshi_cara_11
                 0x0a03ca28                textura_yoshi_cara_10_fin
-                0x0a03d438                textura_yoshi_cara_12
                 0x0a03d438                textura_yoshi_cara_11_fin
-                0x0a03de94                textura_yoshi_cara_13
+                0x0a03d438                textura_yoshi_cara_12
                 0x0a03de94                textura_yoshi_cara_12_fin
-                0x0a03e974                textura_yoshi_cara_13_fin
+                0x0a03de94                textura_yoshi_cara_13
                 0x0a03e974                textura_yoshi_cara_14
+                0x0a03e974                textura_yoshi_cara_13_fin
                 0x0a03f47c                textura_yoshi_cara_14_fin
                 0x0a03f47c                textura_yoshi_cara_15
                 0x0a03ff94                textura_yoshi_cara_16
                 0x0a03ff94                textura_yoshi_cara_15_fin
-                0x0a040abc                textura_dk_cara_00
                 0x0a040abc                textura_yoshi_cara_16_fin
+                0x0a040abc                textura_dk_cara_00
                 0x0a0418a8                textura_dk_cara_00_fin
                 0x0a0418a8                textura_dk_cara_01
-                0x0a0426b0                textura_dk_cara_01_fin
                 0x0a0426b0                textura_dk_cara_02
-                0x0a043490                textura_dk_cara_02_fin
+                0x0a0426b0                textura_dk_cara_01_fin
                 0x0a043490                textura_dk_cara_03
+                0x0a043490                textura_dk_cara_02_fin
                 0x0a044240                textura_dk_cara_03_fin
                 0x0a044240                textura_dk_cara_04
-                0x0a044fe8                textura_dk_cara_04_fin
                 0x0a044fe8                textura_dk_cara_05
+                0x0a044fe8                textura_dk_cara_04_fin
                 0x0a045dcc                textura_dk_cara_05_fin
                 0x0a045dcc                textura_dk_cara_06
-                0x0a046bf8                textura_dk_cara_06_fin
                 0x0a046bf8                textura_dk_cara_07
+                0x0a046bf8                textura_dk_cara_06_fin
                 0x0a047a8c                textura_dk_cara_07_fin
                 0x0a047a8c                textura_dk_cara_08
                 0x0a048968                textura_dk_cara_09
                 0x0a048968                textura_dk_cara_08_fin
-                0x0a0498b0                textura_dk_cara_10
                 0x0a0498b0                textura_dk_cara_09_fin
+                0x0a0498b0                textura_dk_cara_10
                 0x0a04a7e8                textura_dk_cara_11
                 0x0a04a7e8                textura_dk_cara_10_fin
-                0x0a04b76c                textura_dk_cara_12
                 0x0a04b76c                textura_dk_cara_11_fin
+                0x0a04b76c                textura_dk_cara_12
                 0x0a04c770                textura_dk_cara_12_fin
                 0x0a04c770                textura_dk_cara_13
-                0x0a04d730                textura_dk_cara_13_fin
                 0x0a04d730                textura_dk_cara_14
-                0x0a04e67c                textura_dk_cara_15
+                0x0a04d730                textura_dk_cara_13_fin
                 0x0a04e67c                textura_dk_cara_14_fin
+                0x0a04e67c                textura_dk_cara_15
                 0x0a04f57c                textura_dk_cara_16
                 0x0a04f57c                textura_dk_cara_15_fin
                 0x0a0504d0                textura_dk_cara_16_fin
                 0x0a0504d0                textura_wario_cara_00
                 0x0a051630                textura_wario_cara_00_fin
                 0x0a051630                textura_wario_cara_01
-                0x0a052774                textura_wario_cara_01_fin
                 0x0a052774                textura_wario_cara_02
-                0x0a0538c8                textura_wario_cara_02_fin
+                0x0a052774                textura_wario_cara_01_fin
                 0x0a0538c8                textura_wario_cara_03
-                0x0a054a30                textura_wario_cara_03_fin
+                0x0a0538c8                textura_wario_cara_02_fin
                 0x0a054a30                textura_wario_cara_04
-                0x0a055b84                textura_wario_cara_05
+                0x0a054a30                textura_wario_cara_03_fin
                 0x0a055b84                textura_wario_cara_04_fin
-                0x0a056ce0                textura_wario_cara_06
+                0x0a055b84                textura_wario_cara_05
                 0x0a056ce0                textura_wario_cara_05_fin
+                0x0a056ce0                textura_wario_cara_06
                 0x0a057e54                textura_wario_cara_07
                 0x0a057e54                textura_wario_cara_06_fin
                 0x0a05902c                textura_wario_cara_07_fin
                 0x0a05902c                textura_wario_cara_08
                 0x0a05a254                textura_wario_cara_08_fin
                 0x0a05a254                textura_wario_cara_09
-                0x0a05b4c0                textura_wario_cara_10
                 0x0a05b4c0                textura_wario_cara_09_fin
+                0x0a05b4c0                textura_wario_cara_10
                 0x0a05c7a0                textura_wario_cara_10_fin
                 0x0a05c7a0                textura_wario_cara_11
                 0x0a05daa8                textura_wario_cara_12
                 0x0a05daa8                textura_wario_cara_11_fin
-                0x0a05ed8c                textura_wario_cara_12_fin
                 0x0a05ed8c                textura_wario_cara_13
-                0x0a0600b0                textura_wario_cara_13_fin
+                0x0a05ed8c                textura_wario_cara_12_fin
                 0x0a0600b0                textura_wario_cara_14
+                0x0a0600b0                textura_wario_cara_13_fin
                 0x0a06139c                textura_wario_cara_15
                 0x0a06139c                textura_wario_cara_14_fin
-                0x0a062668                textura_wario_cara_15_fin
                 0x0a062668                textura_wario_cara_16
+                0x0a062668                textura_wario_cara_15_fin
                 0x0a0637e0                textura_bowser_cara_00
                 0x0a0637e0                textura_wario_cara_16_fin
                 0x0a064ac8                textura_bowser_cara_00_fin
@@ -2407,12 +2407,12 @@ Linker script and memory map
                 0x0a065d7c                textura_bowser_cara_02
                 0x0a067044                textura_bowser_cara_02_fin
                 0x0a067044                textura_bowser_cara_03
-                0x0a068310                textura_bowser_cara_03_fin
                 0x0a068310                textura_bowser_cara_04
+                0x0a068310                textura_bowser_cara_03_fin
                 0x0a0695b4                textura_bowser_cara_04_fin
                 0x0a0695b4                textura_bowser_cara_05
-                0x0a06a840                textura_bowser_cara_05_fin
                 0x0a06a840                textura_bowser_cara_06
+                0x0a06a840                textura_bowser_cara_05_fin
                 0x0a06bb1c                textura_bowser_cara_06_fin
                 0x0a06bb1c                textura_bowser_cara_07
                 0x0a06ce04                textura_bowser_cara_08
@@ -2421,20 +2421,20 @@ Linker script and memory map
                 0x0a06e0f4                textura_bowser_cara_09
                 0x0a06f410                textura_bowser_cara_09_fin
                 0x0a06f410                textura_bowser_cara_10
-                0x0a0706dc                textura_bowser_cara_10_fin
                 0x0a0706dc                textura_bowser_cara_11
-                0x0a071a18                textura_bowser_cara_11_fin
+                0x0a0706dc                textura_bowser_cara_10_fin
                 0x0a071a18                textura_bowser_cara_12
+                0x0a071a18                textura_bowser_cara_11_fin
                 0x0a072dbc                textura_bowser_cara_12_fin
                 0x0a072dbc                textura_bowser_cara_13
                 0x0a074138                textura_bowser_cara_14
                 0x0a074138                textura_bowser_cara_13_fin
-                0x0a07547c                textura_bowser_cara_14_fin
                 0x0a07547c                textura_bowser_cara_15
-                0x0a0767c4                textura_bowser_cara_15_fin
+                0x0a07547c                textura_bowser_cara_14_fin
                 0x0a0767c4                textura_bowser_cara_16
-                0x0a0779e8                textura_bowser_cara_16_fin
+                0x0a0767c4                textura_bowser_cara_15_fin
                 0x0a0779e8                textura_vista_previa_mario_raceway
+                0x0a0779e8                textura_bowser_cara_16_fin
                 0x0a07ab40                textura_vista_previa_choco_mountain
                 0x0a07d564                textura_vista_previa_bowsers_castle
                 0x0a080644                textura_vista_previa_banshee_boardwalk
@@ -2459,14 +2459,14 @@ Linker script and memory map
                 0x0a0aefec                textura_plata_trofeo
                 0x0a0af614                textura_bronce_trofeo
                 0x0a0af614                textura_trofeo_plata_fin
-                0x0a0afc00                textura_trofeo_bronce_fin
                 0x0a0afc00                textura_oro_copa
-                0x0a0b058c                textura_copa_oro_fin
+                0x0a0afc00                textura_trofeo_bronce_fin
                 0x0a0b058c                textura_plata_copa
+                0x0a0b058c                textura_copa_oro_fin
                 0x0a0b0f10                textura_bronce_copa
                 0x0a0b0f10                textura_copa_plata_fin
-                0x0a0b17b4                textura_copa_bronce_fin
                 0x0a0b17b4                empezar_boton_empuje
+                0x0a0b17b4                textura_copa_bronce_fin
                 0x0a0b2b94                copyright_1996
                 0x0a0b3c0c                textura_azul_borde_p1
                 0x0a0b5c0c                textura_p2_borde_rojo
@@ -2482,38 +2482,38 @@ Linker script and memory map
                 0x0a0bceb0                textura_chico_fuente_0_fin
                 0x0a0bcf08                textura_chico_fuente_1_fin
                 0x0a0bcf08                textura_fuente_chico_2
-                0x0a0bcfa0                textura_chico_fuente_2_fin
                 0x0a0bcfa0                textura_fuente_chico_3
-                0x0a0bd034                textura_fuente_chico_4
+                0x0a0bcfa0                textura_chico_fuente_2_fin
                 0x0a0bd034                textura_chico_fuente_3_fin
-                0x0a0bd0bc                textura_fuente_chico_5
+                0x0a0bd034                textura_fuente_chico_4
                 0x0a0bd0bc                textura_chico_fuente_4_fin
-                0x0a0bd154                textura_fuente_chico_6
+                0x0a0bd0bc                textura_fuente_chico_5
                 0x0a0bd154                textura_chico_fuente_5_fin
+                0x0a0bd154                textura_fuente_chico_6
                 0x0a0bd1f0                textura_chico_fuente_6_fin
                 0x0a0bd1f0                textura_fuente_chico_7
                 0x0a0bd260                textura_fuente_chico_8
                 0x0a0bd260                textura_chico_fuente_7_fin
-                0x0a0bd2f0                textura_chico_fuente_8_fin
                 0x0a0bd2f0                textura_fuente_chico_9
-                0x0a0bd390                textura_n64_controller_pak_seleccion_datos
+                0x0a0bd2f0                textura_chico_fuente_8_fin
                 0x0a0bd390                textura_chico_fuente_9_fin
-                0x0a0be4b8                textura_borrar_datos_registro_confirmacion
+                0x0a0bd390                textura_n64_controller_pak_seleccion_datos
                 0x0a0be4b8                textura_n64_controller_pak_datos_seleccion_fin
-                0x0a0bf4ac                textura_registro_no_borrado
+                0x0a0be4b8                textura_borrar_datos_registro_confirmacion
                 0x0a0bf4ac                textura_borrar_datos_registro_confirmacion_fin
-                0x0a0bfd7c                textura_registro_no_borrado_fin
+                0x0a0bf4ac                textura_registro_no_borrado
                 0x0a0bfd7c                textura_lugar_n64_controller_pak_en_mando_1
-                0x0a0c09c8                textura_lugar_n64_controller_pak_en_mando_1_fin
+                0x0a0bfd7c                textura_registro_no_borrado_fin
                 0x0a0c09c8                textura_original_n64_reinsertar_por_favor_controller_pak
-                0x0a0c16a0                textura_registro_seleccionado_borrando
+                0x0a0c09c8                textura_lugar_n64_controller_pak_en_mando_1_fin
                 0x0a0c16a0                textura_por_favor_reinsertar_original_n64_controller_pak_fin
+                0x0a0c16a0                textura_registro_seleccionado_borrando
                 0x0a0c22a4                textura_borrando_seleccionado_registro_fin
                 0x0a0c22a4                textura_registro_seleccion
-                0x0a0c261c                textura_seleccion_registro_fin
                 0x0a0c261c                textura_fin_texto
-                0x0a0c274c                textura_texto_fin_fin
+                0x0a0c261c                textura_seleccion_registro_fin
                 0x0a0c274c                textura_tabla_de_contenido
+                0x0a0c274c                textura_texto_fin_fin
                 0x0a0c2b78                textura_hash_texto
                 0x0a0c2b78                textura_tabla_de_contenido_fin
                 0x0a0c2bf8                textura_texto_hash_fin
@@ -2522,84 +2522,84 @@ Linker script and memory map
                 0x0a0c2ebc                textura_texto_juego_datos_fin
                 0x0a0c307c                textura_texto_paginas_fin
                 0x0a0c307c                textura_libre_paginas_texto
-                0x0a0c3340                textura_borrar_texto
                 0x0a0c3340                textura_texto_paginas_libre_fin
+                0x0a0c3340                textura_borrar_texto
                 0x0a0c34e0                textura_abandonar_texto
                 0x0a0c34e0                textura_texto_borrar_fin
-                0x0a0c3628                textura_7ED058
                 0x0a0c3628                textura_texto_abandonar_fin
+                0x0a0c3628                textura_7ED058
                 0x0a0c3860                textura_7ED058_fin
                 0x0a0c3860                textura_7ED290
-                0x0a0c3adc                textura_7ED50C
                 0x0a0c3adc                textura_7ED290_fin
+                0x0a0c3adc                textura_7ED50C
                 0x0a0c3c74                textura_7ED6A4
                 0x0a0c3c74                textura_7ED50C_fin
-                0x0a0c4004                textura_7ED6A4_fin
                 0x0a0c4004                textura_fuente_diminuto_0
-                0x0a0c4078                textura_fuente_diminuto_1
+                0x0a0c4004                textura_7ED6A4_fin
                 0x0a0c4078                textura_diminuto_fuente_0_fin
+                0x0a0c4078                textura_fuente_diminuto_1
                 0x0a0c40c0                textura_diminuto_fuente_1_fin
                 0x0a0c40c0                textura_fuente_diminuto_2
-                0x0a0c4134                textura_fuente_diminuto_3
                 0x0a0c4134                textura_diminuto_fuente_2_fin
+                0x0a0c4134                textura_fuente_diminuto_3
                 0x0a0c41a4                textura_diminuto_fuente_3_fin
                 0x0a0c41a4                textura_fuente_diminuto_4
                 0x0a0c4200                textura_diminuto_fuente_4_fin
                 0x0a0c4200                textura_fuente_diminuto_5
                 0x0a0c4274                textura_fuente_diminuto_6
                 0x0a0c4274                textura_diminuto_fuente_5_fin
-                0x0a0c42e8                textura_fuente_diminuto_7
                 0x0a0c42e8                textura_diminuto_fuente_6_fin
+                0x0a0c42e8                textura_fuente_diminuto_7
                 0x0a0c4348                textura_diminuto_fuente_7_fin
                 0x0a0c4348                textura_fuente_diminuto_8
                 0x0a0c43c0                textura_fuente_diminuto_9
                 0x0a0c43c0                textura_diminuto_fuente_8_fin
-                0x0a0c4434                textura_fuente_a_diminuto
                 0x0a0c4434                textura_diminuto_fuente_9_fin
-                0x0a0c44a0                textura_fuente_b_diminuto
+                0x0a0c4434                textura_fuente_a_diminuto
                 0x0a0c44a0                textura_diminuto_fuente_a_fin
+                0x0a0c44a0                textura_fuente_b_diminuto
                 0x0a0c451c                textura_diminuto_fuente_b_fin
                 0x0a0c451c                textura_fuente_c_diminuto
-                0x0a0c4590                textura_fuente_d_diminuto
                 0x0a0c4590                textura_diminuto_fuente_c_fin
-                0x0a0c4600                textura_diminuto_fuente_d_fin
+                0x0a0c4590                textura_fuente_d_diminuto
                 0x0a0c4600                textura_fuente_e_diminuto
+                0x0a0c4600                textura_diminuto_fuente_d_fin
                 0x0a0c4674                textura_fuente_f_diminuto
                 0x0a0c4674                textura_diminuto_fuente_e_fin
                 0x0a0c46d8                textura_diminuto_fuente_f_fin
                 0x0a0c46d8                textura_fuente_g_diminuto
-                0x0a0c474c                textura_fuente_h_diminuto
                 0x0a0c474c                textura_diminuto_fuente_g_fin
+                0x0a0c474c                textura_fuente_h_diminuto
                 0x0a0c47c4                textura_fuente_i_diminuto
                 0x0a0c47c4                textura_diminuto_fuente_h_fin
-                0x0a0c480c                textura_fuente_j_diminuto
                 0x0a0c480c                textura_diminuto_fuente_i_fin
+                0x0a0c480c                textura_fuente_j_diminuto
                 0x0a0c4860                textura_fuente_k_diminuto
                 0x0a0c4860                textura_diminuto_fuente_j_fin
                 0x0a0c48d0                textura_fuente_l_diminuto
                 0x0a0c48d0                textura_diminuto_fuente_k_fin
-                0x0a0c491c                textura_fuente_m_diminuto
                 0x0a0c491c                textura_diminuto_fuente_l_fin
+                0x0a0c491c                textura_fuente_m_diminuto
                 0x0a0c4998                textura_fuente_n_diminuto
                 0x0a0c4998                textura_diminuto_fuente_m_fin
                 0x0a0c4a14                textura_diminuto_fuente_n_fin
                 0x0a0c4a14                textura_fuente_o_diminuto
-                0x0a0c4a8c                textura_fuente_p_diminuto
                 0x0a0c4a8c                textura_diminuto_fuente_o_fin
-                0x0a0c4af8                textura_diminuto_fuente_p_fin
+                0x0a0c4a8c                textura_fuente_p_diminuto
                 0x0a0c4af8                textura_fuente_q_diminuto
+                0x0a0c4af8                textura_diminuto_fuente_p_fin
                 0x0a0c4b70                textura_diminuto_fuente_q_fin
                 0x0a0c4b70                textura_fuente_r_diminuto
-                0x0a0c4be4                textura_fuente_s_diminuto
                 0x0a0c4be4                textura_diminuto_fuente_r_fin
-                0x0a0c4c54                textura_fuente_t_diminuto
+                0x0a0c4be4                textura_fuente_s_diminuto
                 0x0a0c4c54                textura_diminuto_fuente_s_fin
+                0x0a0c4c54                textura_fuente_t_diminuto
                 0x0a0c4ca8                textura_diminuto_fuente_t_fin
                 0x0a0c4ca8                textura_fuente_u_diminuto
                 0x0a0c4d0c                textura_diminuto_fuente_u_fin
                 0x0a0c4d0c                textura_fuente_v_diminuto
-                0x0a0c4d6c                textura_diminuto_fuente_v_fin
                 0x0a0c4d6c                textura_fuente_w_diminuto
+                0x0a0c4d6c                textura_diminuto_fuente_v_fin
                 0x0a0c4de8                textura_diminuto_fuente_w_fin
                 0x0a0c4de8                textura_fuente_x_diminuto
                 0x0a0c4e54                textura_fuente_y_diminuto
@@ -2612,8 +2612,8 @@ Linker script and memory map
                 0x0a0c4f54                textura_diminuto_fuente_signo_exclamacion_fin
                 0x0a0c4f8c                textura_hash_fuente_diminuto
                 0x0a0c4f8c                textura_diminuto_fuente_doble_comilla_fin
-                0x0a0c4ffc                textura_diminuto_fuente_simple_comilla
                 0x0a0c4ffc                textura_diminuto_fuente_hash_fin
+                0x0a0c4ffc                textura_diminuto_fuente_simple_comilla
                 0x0a0c502c                textura_diminuto_fuente_simple_comilla_fin
                 0x0a0c502c                textura_asterisco_fuente_diminuto
                 0x0a0c5098                textura_diminuto_fuente_asterisco_fin
@@ -2628,34 +2628,34 @@ Linker script and memory map
                 0x0a0c517c                textura_diminuto_fuente_coma_fin
                 0x0a0c51cc                textura_diminuto_fuente_adelante_barra_fin
                 0x0a0c51cc                textura_dos_puntos_fuente_diminuto
-                0x0a0c5204                textura_7EEC34
                 0x0a0c5204                textura_diminuto_fuente_dos_puntos_fin
-                0x0a0c5254                textura_7EEC34_fin
+                0x0a0c5204                textura_7EEC34
                 0x0a0c5254                textura_pregunta_fuente_diminuto
-                0x0a0c52b4                textura_diminuto_fuente_pregunta_fin
+                0x0a0c5254                textura_7EEC34_fin
                 0x0a0c52b4                textura_7EECE4
-                0x0a0c5344                textura_7EED74
+                0x0a0c52b4                textura_diminuto_fuente_pregunta_fin
                 0x0a0c5344                textura_7EECE4_fin
-                0x0a0c5380                textura_7EEDB0
+                0x0a0c5344                textura_7EED74
                 0x0a0c5380                textura_7EED74_fin
-                0x0a0c53b8                textura_7EEDB0_fin
+                0x0a0c5380                textura_7EEDB0
                 0x0a0c53b8                textura_7EEDE8
+                0x0a0c53b8                textura_7EEDB0_fin
                 0x0a0c53f0                textura_7EEE20
                 0x0a0c53f0                textura_7EEDE8_fin
                 0x0a0c544c                textura_7EEE7C
                 0x0a0c544c                textura_7EEE20_fin
-                0x0a0c54a0                textura_7EEED0
                 0x0a0c54a0                textura_7EEE7C_fin
-                0x0a0c550c                textura_7EEF3C
+                0x0a0c54a0                textura_7EEED0
                 0x0a0c550c                textura_7EEED0_fin
-                0x0a0c5560                textura_7EEF90
+                0x0a0c550c                textura_7EEF3C
                 0x0a0c5560                textura_7EEF3C_fin
-                0x0a0c55c4                textura_7EEF90_fin
+                0x0a0c5560                textura_7EEF90
                 0x0a0c55c4                textura_7EEFF4
-                0x0a0c5628                textura_7EF058
+                0x0a0c55c4                textura_7EEF90_fin
                 0x0a0c5628                textura_7EEFF4_fin
-                0x0a0c5684                textura_7EF0B4
+                0x0a0c5628                textura_7EF058
                 0x0a0c5684                textura_7EF058_fin
+                0x0a0c5684                textura_7EF0B4
                 0x0a0c56e0                textura_7EF110
                 0x0a0c56e0                textura_7EF0B4_fin
                 0x0a0c574c                textura_7EF17C
@@ -2664,144 +2664,144 @@ Linker script and memory map
                 0x0a0c57c0                textura_7EF1F0
                 0x0a0c5820                textura_7EF250
                 0x0a0c5820                textura_7EF1F0_fin
-                0x0a0c5888                textura_7EF250_fin
                 0x0a0c5888                textura_7EF2B8
-                0x0a0c58e4                textura_7EF2B8_fin
+                0x0a0c5888                textura_7EF250_fin
                 0x0a0c58e4                textura_7EF314
-                0x0a0c5958                textura_7EF388
+                0x0a0c58e4                textura_7EF2B8_fin
                 0x0a0c5958                textura_7EF314_fin
-                0x0a0c59c8                textura_7EF3F8
+                0x0a0c5958                textura_7EF388
                 0x0a0c59c8                textura_7EF388_fin
-                0x0a0c5a40                textura_7EF470
+                0x0a0c59c8                textura_7EF3F8
                 0x0a0c5a40                textura_7EF3F8_fin
+                0x0a0c5a40                textura_7EF470
                 0x0a0c5ab4                textura_7EF470_fin
                 0x0a0c5ab4                textura_7EF4E4
                 0x0a0c5b24                textura_7EF4E4_fin
                 0x0a0c5b24                textura_7EF554
-                0x0a0c5b90                textura_7EF5C0
                 0x0a0c5b90                textura_7EF554_fin
+                0x0a0c5b90                textura_7EF5C0
                 0x0a0c5bf0                textura_7EF620
                 0x0a0c5bf0                textura_7EF5C0_fin
                 0x0a0c5c64                textura_7EF620_fin
                 0x0a0c5c64                textura_7EF694
                 0x0a0c5cd8                textura_7EF708
                 0x0a0c5cd8                textura_7EF694_fin
-                0x0a0c5d4c                textura_7EF708_fin
                 0x0a0c5d4c                textura_7EF77C
-                0x0a0c5db8                textura_7EF77C_fin
+                0x0a0c5d4c                textura_7EF708_fin
                 0x0a0c5db8                textura_7EF7E8
-                0x0a0c5e2c                textura_7EF85C
+                0x0a0c5db8                textura_7EF77C_fin
                 0x0a0c5e2c                textura_7EF7E8_fin
+                0x0a0c5e2c                textura_7EF85C
                 0x0a0c5e98                textura_7EF85C_fin
                 0x0a0c5e98                textura_7EF8C8
                 0x0a0c5f0c                textura_7EF8C8_fin
                 0x0a0c5f0c                textura_7EF93C
-                0x0a0c5f84                textura_7EF9B4
                 0x0a0c5f84                textura_7EF93C_fin
-                0x0a0c5ffc                textura_7EF9B4_fin
+                0x0a0c5f84                textura_7EF9B4
                 0x0a0c5ffc                textura_7EFA2C
+                0x0a0c5ffc                textura_7EF9B4_fin
                 0x0a0c6078                textura_7EFA2C_fin
                 0x0a0c6078                textura_7EFAA8
                 0x0a0c60d0                textura_7EFB00
                 0x0a0c60d0                textura_7EFAA8_fin
                 0x0a0c6134                textura_7EFB64
                 0x0a0c6134                textura_7EFB00_fin
-                0x0a0c618c                textura_7EFB64_fin
                 0x0a0c618c                textura_7EFBBC
+                0x0a0c618c                textura_7EFB64_fin
                 0x0a0c6200                textura_7EFC30
                 0x0a0c6200                textura_7EFBBC_fin
                 0x0a0c627c                textura_7EFCAC
                 0x0a0c627c                textura_7EFC30_fin
-                0x0a0c62d0                textura_7EFCAC_fin
                 0x0a0c62d0                textura_7EFD00
-                0x0a0c6330                textura_7EFD00_fin
+                0x0a0c62d0                textura_7EFCAC_fin
                 0x0a0c6330                textura_7EFD60
-                0x0a0c63a4                textura_7EFD60_fin
+                0x0a0c6330                textura_7EFD00_fin
                 0x0a0c63a4                textura_7EFDD4
-                0x0a0c6418                textura_7EFE48
+                0x0a0c63a4                textura_7EFD60_fin
                 0x0a0c6418                textura_7EFDD4_fin
+                0x0a0c6418                textura_7EFE48
                 0x0a0c6470                textura_7EFEA0
                 0x0a0c6470                textura_7EFE48_fin
-                0x0a0c64fc                textura_7EFEA0_fin
                 0x0a0c64fc                textura_7EFF2C
+                0x0a0c64fc                textura_7EFEA0_fin
                 0x0a0c6560                textura_7EFF90
                 0x0a0c6560                textura_7EFF2C_fin
-                0x0a0c65d0                textura_7EFF90_fin
                 0x0a0c65d0                textura_7F0000
+                0x0a0c65d0                textura_7EFF90_fin
                 0x0a0c663c                textura_7F006C
                 0x0a0c663c                textura_7F0000_fin
-                0x0a0c66a8                textura_7F006C_fin
                 0x0a0c66a8                textura_7F00D8
-                0x0a0c6728                textura_7F00D8_fin
+                0x0a0c66a8                textura_7F006C_fin
                 0x0a0c6728                textura_7F0158
-                0x0a0c67a0                textura_7F01D0
+                0x0a0c6728                textura_7F00D8_fin
                 0x0a0c67a0                textura_7F0158_fin
-                0x0a0c680c                textura_7F023C
+                0x0a0c67a0                textura_7F01D0
                 0x0a0c680c                textura_7F01D0_fin
-                0x0a0c6884                textura_7F023C_fin
+                0x0a0c680c                textura_7F023C
                 0x0a0c6884                textura_7F02B4
-                0x0a0c68fc                textura_7F032C
+                0x0a0c6884                textura_7F023C_fin
                 0x0a0c68fc                textura_7F02B4_fin
-                0x0a0c6960                textura_7F0390
+                0x0a0c68fc                textura_7F032C
                 0x0a0c6960                textura_7F032C_fin
+                0x0a0c6960                textura_7F0390
                 0x0a0c69d4                textura_7F0390_fin
                 0x0a0c69d4                textura_7F0404
-                0x0a0c6a40                textura_7F0470
                 0x0a0c6a40                textura_7F0404_fin
+                0x0a0c6a40                textura_7F0470
                 0x0a0c6abc                textura_7F0470_fin
                 0x0a0c6abc                textura_7F04EC
-                0x0a0c6b2c                textura_7F04EC_fin
                 0x0a0c6b2c                textura_7F055C
-                0x0a0c6bc0                textura_7F055C_fin
+                0x0a0c6b2c                textura_7F04EC_fin
                 0x0a0c6bc0                textura_7F05F0
+                0x0a0c6bc0                textura_7F055C_fin
                 0x0a0c6c40                textura_7F05F0_fin
                 0x0a0c6c40                textura_7F0670
                 0x0a0c6cbc                textura_7F06EC
                 0x0a0c6cbc                textura_7F0670_fin
                 0x0a0c6d38                textura_7F06EC_fin
                 0x0a0c6d38                textura_7F0768
-                0x0a0c6db0                textura_7F0768_fin
                 0x0a0c6db0                textura_7F07E0
+                0x0a0c6db0                textura_7F0768_fin
                 0x0a0c6e28                textura_7F07E0_fin
                 0x0a0c6e28                textura_7F0858
-                0x0a0c6ea8                textura_7F08D8
                 0x0a0c6ea8                textura_7F0858_fin
-                0x0a0c6f18                textura_7F0948
+                0x0a0c6ea8                textura_7F08D8
                 0x0a0c6f18                textura_7F08D8_fin
-                0x0a0c6fa0                textura_7F0948_fin
+                0x0a0c6f18                textura_7F0948
                 0x0a0c6fa0                textura_7F09D0
+                0x0a0c6fa0                textura_7F0948_fin
                 0x0a0c700c                textura_7F09D0_fin
                 0x0a0c700c                textura_7F0A3C
                 0x0a0c708c                textura_7F0A3C_fin
                 0x0a0c708c                textura_7F0ABC
                 0x0a0c7104                textura_7F0ABC_fin
                 0x0a0c7104                textura_7F0B34
-                0x0a0c7180                textura_7F0B34_fin
                 0x0a0c7180                textura_7F0BB0
+                0x0a0c7180                textura_7F0B34_fin
                 0x0a0c71f4                textura_7F0C24
                 0x0a0c71f4                textura_7F0BB0_fin
                 0x0a0c7264                textura_7F0C24_fin
                 0x0a0c7264                textura_7F0C94
-                0x0a0c72dc                textura_7F0D0C
                 0x0a0c72dc                textura_7F0C94_fin
+                0x0a0c72dc                textura_7F0D0C
                 0x0a0c735c                textura_7F0D8C
                 0x0a0c735c                textura_7F0D0C_fin
-                0x0a0c73bc                textura_7F0DEC
                 0x0a0c73bc                textura_7F0D8C_fin
-                0x0a0c742c                textura_7F0E5C
+                0x0a0c73bc                textura_7F0DEC
                 0x0a0c742c                textura_7F0DEC_fin
-                0x0a0c74b4                textura_7F0E5C_fin
+                0x0a0c742c                textura_7F0E5C
                 0x0a0c74b4                textura_7F0EE4
+                0x0a0c74b4                textura_7F0E5C_fin
                 0x0a0c752c                textura_7F0EE4_fin
                 0x0a0c752c                textura_7F0F5C
-                0x0a0c75a8                textura_7F0FD8
                 0x0a0c75a8                textura_7F0F5C_fin
+                0x0a0c75a8                textura_7F0FD8
                 0x0a0c7608                textura_7F0FD8_fin
                 0x0a0c7608                textura_7F1038
-                0x0a0c766c                textura_7F109C
                 0x0a0c766c                textura_7F1038_fin
-                0x0a0c76f4                textura_7F109C_fin
+                0x0a0c766c                textura_7F109C
                 0x0a0c76f4                fuente_cuatro_dote
+                0x0a0c76f4                textura_7F109C_fin
                 0x0a0c77c4                fuente_cc
                 0x0a0c7894                fuente_doble_comilla
                 0x0a0c7964                fuente_signo_exclamacion
@@ -3052,30 +3052,30 @@ Linker script and memory map
                 0x0b000000                textura_seleccion_jugador
                 0x0b000c00                textura_fin_seleccion_jugador
                 0x0b000c00                textura_opcion
-                0x0b001500                textura_fin_opcion
                 0x0b001500                textura_nombre_dk
-                0x0b001700                textura_nombre_dk_fin
+                0x0b001500                textura_fin_opcion
                 0x0b001700                textura_nombre_toad
+                0x0b001700                textura_nombre_dk_fin
                 0x0b001900                textura_nombre_toad_fin
                 0x0b001900                textura_nombre_bowser
                 0x0b001b00                textura_nombre_bowser_fin
                 0x0b001b00                textura_nombre_luigi
                 0x0b001d00                textura_nombre_luigi_fin
                 0x0b001d00                textura_nombre_mario
-                0x0b001f00                textura_nombre_peach
                 0x0b001f00                textura_nombre_mario_fin
-                0x0b002100                textura_nombre_peach_fin
+                0x0b001f00                textura_nombre_peach
                 0x0b002100                textura_nombre_wario
-                0x0b002300                textura_nombre_wario_fin
+                0x0b002100                textura_nombre_peach_fin
                 0x0b002300                textura_nombre_yoshi
-                0x0b002500                textura_titulo_mario_raceway
+                0x0b002300                textura_nombre_wario_fin
                 0x0b002500                textura_nombre_yoshi_fin
+                0x0b002500                textura_titulo_mario_raceway
                 0x0b002a00                textura_titulo_choco_mountain
                 0x0b002a00                textura_titulo_mario_raceway_fin
                 0x0b002f00                textura_titulo_choco_mountain_fin
                 0x0b002f00                textura_titulo_bowsers_castle
-                0x0b003400                textura_titulo_banshee_boardwalk
                 0x0b003400                textura_titulo_bowsers_castle_fin
+                0x0b003400                textura_titulo_banshee_boardwalk
                 0x0b003a00                textura_titulo_yoshi_valley
                 0x0b003a00                textura_titulo_banshee_boardwalk_fin
                 0x0b003e00                textura_titulo_frappe_snowland
@@ -3084,32 +3084,32 @@ Linker script and memory map
                 0x0b004300                textura_titulo_koopa_troopa_beach
                 0x0b004800                textura_titulo_royal_raceway
                 0x0b004800                textura_titulo_koopa_troopa_beach_fin
-                0x0b004c00                textura_titulo_royal_raceway_fin
                 0x0b004c00                textura_titulo_luigi_raceway
-                0x0b005000                textura_titulo_luigi_raceway_fin
+                0x0b004c00                textura_titulo_royal_raceway_fin
                 0x0b005000                textura_titulo_moo_moo_farm
+                0x0b005000                textura_titulo_luigi_raceway_fin
                 0x0b005400                textura_titulo_moo_moo_farm_fin
                 0x0b005400                textura_titulo_toads_turnpike
                 0x0b005900                textura_titulo_toads_turnpike_fin
                 0x0b005900                textura_titulo_kalimari_desert
-                0x0b005d00                textura_titulo_kalimari_desert_fin
                 0x0b005d00                textura_titulo_sherbet_land
-                0x0b006100                textura_titulo_sherbet_land_fin
+                0x0b005d00                textura_titulo_kalimari_desert_fin
                 0x0b006100                textura_titulo_rainbow_road
-                0x0b006500                textura_titulo_rainbow_road_fin
+                0x0b006100                textura_titulo_sherbet_land_fin
                 0x0b006500                textura_titulo_wario_stadium
+                0x0b006500                textura_titulo_rainbow_road_fin
                 0x0b006a00                textura_titulo_block_fort
                 0x0b006a00                textura_titulo_wario_stadium_fin
-                0x0b006d00                textura_titulo_skyscraper
                 0x0b006d00                textura_titulo_block_fort_fin
-                0x0b007100                textura_titulo_skyscraper_fin
+                0x0b006d00                textura_titulo_skyscraper
                 0x0b007100                textura_titulo_double_deck
-                0x0b007500                textura_titulo_double_deck_fin
+                0x0b007100                textura_titulo_skyscraper_fin
                 0x0b007500                textura_titulo_dks_jungle_parkway
-                0x0b007b00                textura_titulo_big_donut
+                0x0b007500                textura_titulo_double_deck_fin
                 0x0b007b00                textura_titulo_dks_jungle_parkway_fin
-                0x0b007e00                textura_seleccion_mapa
+                0x0b007b00                textura_titulo_big_donut
                 0x0b007e00                textura_titulo_big_donut_fin
+                0x0b007e00                textura_seleccion_mapa
                 0x0b008a00                textura_mapa_seleccion_fin
                 0x0b008a00                textura_menu_copa_flor
                 0x0b008e00                textura_menu_copa_flor_fin
@@ -3118,38 +3118,38 @@ Linker script and memory map
                 0x0b009200                textura_menu_copa_estrella
                 0x0b009600                textura_menu_copa_estrella_fin
                 0x0b009600                textura_menu_copa_especial
-                0x0b009a00                textura_menu_copa_especial_fin
                 0x0b009a00                textura_seleccion_juego
-                0x0b00a600                textura_fin_seleccion_juego
+                0x0b009a00                textura_menu_copa_especial_fin
                 0x0b00a600                textura_juego_menu_1j
-                0x0b00ab00                textura_fin_juego_menu_1j
+                0x0b00a600                textura_fin_seleccion_juego
                 0x0b00ab00                textura_juego_menu_2j
-                0x0b00b200                textura_juego_menu_3j
+                0x0b00ab00                textura_fin_juego_menu_1j
                 0x0b00b200                textura_fin_juego_menu_2j
-                0x0b00bc00                textura_juego_menu_4j
+                0x0b00b200                textura_juego_menu_3j
                 0x0b00bc00                textura_fin_juego_menu_3j
-                0x0b00c700                textura_batalla_modo
+                0x0b00bc00                textura_juego_menu_4j
                 0x0b00c700                textura_fin_juego_menu_4j
+                0x0b00c700                textura_batalla_modo
                 0x0b00ca00                textura_modo_contrarreloj
                 0x0b00ca00                textura_fin_batalla_modo
                 0x0b00ce00                textura_modo_mario_gp
                 0x0b00ce00                textura_modo_contrarreloj_fin
-                0x0b00d200                textura_modo_vs
                 0x0b00d200                textura_modo_mario_fin_gp
-                0x0b00d500                textura_modo_vs_fin
+                0x0b00d200                textura_modo_vs
                 0x0b00d500                textura_opcion_l
+                0x0b00d500                textura_modo_vs_fin
                 0x0b00d800                textura_fin_opcion_l
                 0x0b00d800                textura_datos_r
                 0x0b00db00                textura_fin_datos_r
                 0x0b00db00                textura_50cc
                 0x0b00dd00                textura_100cc
                 0x0b00dd00                textura_50cc_fin
-                0x0b00df00                textura_150cc
                 0x0b00df00                textura_100cc_fin
-                0x0b00e100                textura_150cc_fin
+                0x0b00df00                textura_150cc
                 0x0b00e100                textura_extra
-                0x0b00e300                textura_menu_sin_item
+                0x0b00e100                textura_150cc_fin
                 0x0b00e300                textura_fin_extra
+                0x0b00e300                textura_menu_sin_item
                 0x0b00e600                textura_menu_sin_item_fin
                 0x0b00e600                textura_menu_con_item
                 0x0b00e900                textura_menu_con_item_fin
@@ -3158,20 +3158,20 @@ Linker script and memory map
                 0x0b00eb00                textura_fantasma_menu
                 0x0b00ed00                textura_fin_fantasma_menu
                 0x0b00ed00                textura_datos
-                0x0b00ef00                textura_ok
                 0x0b00ef00                textura_fin_datos
-                0x0b00f100                textura_fin_ok
+                0x0b00ef00                textura_ok
                 0x0b00f100                cielo_azul_fondo
+                0x0b00f100                textura_fin_ok
                 0x0b01bf00                fondo_azul_cielo_fin
                 0x0b01bf00                atardecer_fondo
                 0x0b025300                fin_atardecer_fondo
                 0x0b025300                textura_franja_oro_verde
                 0x0b025f00                textura_franja_oro
                 0x0b025f00                textura_verde_oro_franja_fin
-                0x0b026600                textura_franja_blanco
                 0x0b026600                textura_oro_franja_fin
-                0x0b026700                textura_barra_rosa
+                0x0b026600                textura_franja_blanco
                 0x0b026700                textura_blanco_franja_fin
+                0x0b026700                textura_barra_rosa
                 0x0b026c00                textura_barra_oro
                 0x0b026c00                textura_rosa_barra_fin
                 0x0b027950                textura_oro_barra_fin

@@ -1,2 +1,4 @@
 # Cache de Python
 __pycache__/
+build/
+compilaciones/

@@ -375,7 +375,7 @@ void medidor_inicio_frame(void)
 
     if (!iniciado) {
         iniciado = 1;
-        texto.vram = gs_vram_medidor();
+        texto.vram = gs_vram_meter();
         texto_limpiar(&texto);
         texto_escribir_linea(&texto, 0, "MIDIENDO...", TEXTO_BLANCO);
         reiniciar_acumulado();
@@ -447,9 +447,9 @@ void medidor_fin_frame(void)
     ventana.render_ciclos += (total > esperas) ? total - esperas : 0;
     ventana.ciclos_espera_gs += espera_gs_frame;
     ventana.ciclos_espera_dma += espera_dma_frame;
-    ventana.bytes_paquete += estadisticas_gs.bytes_paquete;
-    ventana.subidas += estadisticas_gs.subidas;
-    ventana.bytes_subidas += estadisticas_gs.bytes_subidos;
-    ventana.triangulos += estadisticas_gs.triangulos;
-    ventana.rectangulos += estadisticas_gs.sprites;
+    ventana.bytes_paquete += gs_stats.packet_bytes;
+    ventana.subidas += gs_stats.uploads;
+    ventana.bytes_subidas += gs_stats.upload_bytes;
+    ventana.triangulos += gs_stats.triangles;
+    ventana.rectangulos += gs_stats.sprites;
 }

@@ -48,7 +48,7 @@ typedef struct {
     /* Caches por vertice */
     u32 gen_cc, gen_proy;
     float cr, cg, cb, ca, automovil, cag, cabina;
-    VerticeGs proy;
+    GsVertex proy;
     float proy_s, proy_t; /* s y t normalizadas, sin multiplicar por 1/w */
     /* (cache) proj ya empaquetado para el GS */
     u128 gif[3] __attribute__((aligned(16)));
@@ -110,7 +110,7 @@ static struct {
 
     int sucio_estado;
     int proporcion_recorte;
-    EstadoGs gs;
+    GsState gs;
     InfoTextura tex;
     int valido_tex;
 } St;
@@ -491,7 +491,7 @@ static u64 reg_tijera(void)
 /* Triangulos */
 static u64 tri_reg_tijera(void)
 {
-    float sx = GS_ANCHO / 320.0f, sy = GS_ALTO / 240.0f;
+    float sx = GS_WIDTH / 320.0f, sy = GS_HEIGHT / 240.0f;
     float hw = (St.escala_vp[0] < 0 ? -St.escala_vp[0] : St.escala_vp[0]) * St.proporcion_recorte;
     float hh = (St.escala_vp[1] < 0 ? -St.escala_vp[1] : St.escala_vp[1]) * St.proporcion_recorte;
     int x0 = (int) ((St.vp_trans[0] - hw) * sx + 0.5f), x1 = (int) ((St.vp_trans[0] + hw) * sx + 0.5f);
@@ -559,7 +559,7 @@ static void actualizar_generaciones_vertice(int es_rect)
         memcpy(cs.prim, St.prim, 4);
         memcpy(cs.amb, St.amb, 4);
         cs.lod = St.prim_lod_frac;
-        cs.texturizado = (u8) (St.gs.texturizado | (alfa_dither << 1));
+        cs.texturizado = (u8) (St.gs.textured | (alfa_dither << 1));
         cs.agregar_dividir = (u8) agregar_dividir;
         cs.alpha_tex = (u8) alpha_desde_tex;
         cc_cambiado = !equal_palabras(&cs, &cc_sig, sizeof(cs) / 4);
@@ -616,7 +616,7 @@ static int agregar_posible_pasada(void);
 static void construir_impl_estado(int tile, int es_rect);
 
 typedef struct {
-    EstadoGs gs;
+    GsState gs;
     InfoTextura tex;
     float mul_st[2], agregar_st[2], reb[4];
     u32 comprobacion;
@@ -667,7 +667,7 @@ static void construir_estado(int tile, int es_rect)
             periodo_t_reb = r->reb[1];
             reb_inv_s = r->reb[2];
             reb_inv_t = r->reb[3];
-            gs_aplicar_estado(&St.gs);
+            gs_apply_state(&St.gs);
             St.sucio_estado = es_rect;
             if (r->inc_cc && ++gen_cc == 0) {
                 gen_cc = 1;
@@ -760,7 +760,7 @@ u32 prof_x[8], prof_xn[8], prof_xt;
 #endif
 static void construir_impl_estado(int tile, int es_rect)
 {
-    EstadoGs *st = &St.gs;
+    GsState *st = &St.gs;
     u32 l = St.om_l;
     int ciclo = (St.om_h >> G_MDSFT_CYCLETYPE) & 3;
     int zcmp = (l & Z_CMP) && (St.geom & G_ZBUFFER) && !es_rect;
@@ -851,9 +851,9 @@ static void construir_impl_estado(int tile, int es_rect)
         ate = 1;
         aref = 1;
     }
-    st->prueba = GS_SETREG_TEST(ate, ate ? 5 : 1, aref, 0, 0, 0, 1, zcmp ? 2 : 1);
-    st->zbuf = gs_valor_zbuf(zupd);
-    st->tijera = es_rect ? reg_tijera() : tri_reg_tijera();
+    st->test = GS_SETREG_TEST(ate, ate ? 5 : 1, aref, 0, 0, 0, 1, zcmp ? 2 : 1);
+    st->zbuf = gs_zbuf_value(zupd);
+    st->scissor = es_rect ? reg_tijera() : tri_reg_tijera();
     st->fogcol = (u64) St.fogc[0] | ((u64) St.fogc[1] << 8) | ((u64) St.fogc[2] << 16);
 
     filter = FILTRADO_TEXTURAS && ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
@@ -907,14 +907,14 @@ static void construir_impl_estado(int tile, int es_rect)
             reb_inv_t = St.tex.height ? St.tex.maceta_h / (float) St.tex.height : 0.0f;
         }
     }
-    st->texturizado = prim_texturizado && St.valido_tex;
+    st->textured = prim_texturizado && St.valido_tex;
     DIAG_CC_ESTADO(es_rect, prim_texturizado && !afecta_rgb_texel() && alpha_desde_tex);
-    st->prim = (1 << 3)  | (st->texturizado ? (1 << 4) : 0) | (niebla_en ? (1 << 5) : 0) |
+    st->prim = (1 << 3)  | (st->textured ? (1 << 4) : 0) | (niebla_en ? (1 << 5) : 0) |
                (mezcla_alpha ? (1 << 6) : 0);
     /* Los triangulos 3D llevan Gouraud, niebla o transparencias; el HUD, los menus y el texto son rectangulos. */
     st->dither = !es_rect && ciclo < (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
     EMPEZAR_PX();
-    gs_aplicar_estado(st);
+    gs_apply_state(st);
     FIN_PX(3);
     St.sucio_estado = es_rect;
     EMPEZAR_PX();
