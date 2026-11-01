@@ -69,7 +69,11 @@ typedef struct {
 #define DERECHA_RECORTE 4
 #define ARRIBA_RECORTE   8
 #define BOT_RECORTE   16
-#define GUARDIA      3.0f
+/* Guard band, in viewports: triangles are clipped only beyond it (the GS scissor does the rest).
+   3x, or less when the screen is so wide that 3x leaves the GS's 0..4095 primitive coordinates:
+   with XYOFFSET at 2048 - W/2, a 1920-wide screen at 3x would reach -832..4928 and wrap. */
+#define GUARDIA_MAX 3.0f
+static float guardia_x = GUARDIA_MAX, guardia_y = GUARDIA_MAX;
 
 static struct {
     uintptr_t seg[16];
@@ -339,11 +343,12 @@ static void cargar_vertices(const Vtx *orig_, int n, int dst)
         o->gen_cc = 0;
         o->gen_proy = 0;
 
-        gw = GUARDIA * cw;
+        gw = guardia_x * cw;
         recorte = 0;
         if (cz < -cw) recorte |= RECORTE_CERCA;
         if (cx < -gw) recorte |= IZQUIERDA_RECORTE;
         if (cx > gw) recorte |= DERECHA_RECORTE;
+        gw = guardia_y * cw;
         if (cy > gw) recorte |= ARRIBA_RECORTE;
         if (cy < -gw) recorte |= BOT_RECORTE;
         o->clip = recorte;
@@ -491,7 +496,7 @@ static u64 reg_tijera(void)
 /* Triangulos */
 static u64 tri_reg_tijera(void)
 {
-    float sx = GS_WIDTH / 320.0f, sy = GS_HEIGHT / 240.0f;
+    float sx = gs_scale_x, sy = gs_scale_y;
     float hw = (St.escala_vp[0] < 0 ? -St.escala_vp[0] : St.escala_vp[0]) * St.proporcion_recorte;
     float hh = (St.escala_vp[1] < 0 ? -St.escala_vp[1] : St.escala_vp[1]) * St.proporcion_recorte;
     int x0 = (int) ((St.vp_trans[0] - hw) * sx + 0.5f), x1 = (int) ((St.vp_trans[0] + hw) * sx + 0.5f);

@@ -76,8 +76,7 @@ void empezar_frame_pantallas_gigantes(void)
             continue;
         }
         s->pendiente = 0;
-        s->valido = 1;
-        gs_copy_from_screen((float) (s->x * 2), a_fb_y(s->y), (float) (s->w * 2), a_fb_y(s->y + s->h) - a_fb_y(s->y),
+        s->valido = gs_copy_from_screen((float) (s->x * 2), a_fb_y(s->y), (float) (s->w * 2), a_fb_y(s->y + s->h) - a_fb_y(s->y),
                                vram_ranura(i), s->w, s->h);
     }
 }

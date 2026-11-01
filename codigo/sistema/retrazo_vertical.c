@@ -25,6 +25,9 @@ static OSMesg mens_audio;
 extern void *_gp;
 
 void gs_on_vblank(void);
+#ifdef SMK64_DEV
+void gs_hires_log_status(void);
+#endif
 
 static s32 manejador_vblank(s32 causa)
 {
@@ -58,6 +61,11 @@ static void hilo_vi(void *parametro)
             osSendMesg(cola_audio, mens_audio, OS_MESG_NOBLOCK);
         }
         avanzar_temporizadores();
+#ifdef SMK64_DEV
+        if ((retrazo % 120) == 0) {
+            gs_hires_log_status();
+        }
+#endif
     }
 }
 

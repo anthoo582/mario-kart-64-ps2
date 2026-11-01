@@ -3,9 +3,34 @@
 
 #include <tamtypes.h>
 
-/* Output resolution */
-#define GS_WIDTH  640
-#define GS_HEIGHT 448
+/* Video modes, same table as mk64-dc's gfx_ps2_wapi.c. 720p and 1080i use banded multi-pass
+   rendering (the gsHires technique, see sintetizador_gs.c): no 60 FPS interpolation and no live
+   giant screens in those modes. */
+enum {
+    GS_VIDEO_240P,
+    GS_VIDEO_480I, /* 576i in PAL builds */
+    GS_VIDEO_480P, /* 576p in PAL builds */
+    GS_VIDEO_720P,
+    GS_VIDEO_1080I,
+    GS_NUM_VIDEO_MODES
+};
+
+/* Mode used at boot: make EXTRA_DEFINES=-DGS_VIDEO_MODE=GS_VIDEO_480P */
+#ifndef GS_VIDEO_MODE
+#define GS_VIDEO_MODE GS_VIDEO_1080I
+#endif
+
+/* Only before gs_init: the VRAM layout (framebuffers, texture atlas) is fixed after that.
+   Returns 0 if the mode is out of range or the GS is already initialised. */
+int gs_set_video_mode(int mode);
+/* 1 in 720p/1080i (banded multi-pass rendering), valid after gs_init */
+int gs_hires(void);
+
+/* Output resolution, set by the video mode in gs_init */
+extern int gs_width, gs_height;
+extern float gs_scale_x, gs_scale_y; /* GS pixels per N64 pixel (320x240) */
+#define GS_WIDTH  gs_width
+#define GS_HEIGHT gs_height
 
 /* GS general-purpose registers (address numbers for A+D). */
 enum {
@@ -86,9 +111,13 @@ u32 gs_vram_meter(void);
 
 #ifdef SMK64_DEV
 u32 gs_screen_to_ct32(void);
+/* Hires screenshot to a 24-bit TGA (path includes "host:"); renders the bands one by one */
+int gs_hires_capture(const char *path);
+void gs_hires_log_status(void);
 #endif
 
-void gs_copy_from_screen(float x, float y, float w, float h, u32 dst_vram, int dw, int dh);
+/* Returns 0 when the screen cannot be read back (hires: the bands are reused every pass) */
+int gs_copy_from_screen(float x, float y, float w, float h, u32 dst_vram, int dw, int dh);
 
 void gs_upload_texture(u32 tbp, u32 tbw, const u32 *pixels, u32 w, u32 h);
 void gs_upload_texture_rect(u32 tbp, u32 tbw, u32 x, u32 y, const u32 *pixels, u32 w, u32 h);
@@ -103,6 +132,10 @@ typedef struct {
     u32 frames;
     u32 flips;       /* on-screen buffer swaps (cumulative) */
     u32 held[4];
+    /* Hires (cumulative) */
+    u32 band_passes;   /* band passes sent to the GS */
+    u32 band_overruns; /* passes skipped: the previous one was still being sent */
+    u32 dropped;       /* frames not shown: packet or band fixup list overflowed */
 } GsStats;
 extern GsStats gs_stats;
 

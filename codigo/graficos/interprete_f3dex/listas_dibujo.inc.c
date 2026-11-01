@@ -279,7 +279,7 @@ static void ejecutar_dl(Gfx *dl)
                 St.profundidad_prim = w1;
                 break;
             case G_SETSCISSOR: {
-                float sx = GS_WIDTH / 320.0f, sy = GS_HEIGHT / 240.0f;
+                float sx = gs_scale_x, sy = gs_scale_y;
                 int viejo[4] = { St.tijera[0], St.tijera[1], St.tijera[2], St.tijera[3] };
 
                 St.tijera[0] = (int) (((w0 >> 12) & 0xFFF) * 0.25f * sx);
@@ -391,6 +391,11 @@ void inicializar_renderizador(void)
     St.mirada[0][0] = 127;
     St.mirada[1][1] = 127;
     gs_init();
+    /* Viewports lie inside the screen, so this bound also holds for split-screen */
+    guardia_x = 2032.0f / (GS_WIDTH / 2);
+    guardia_y = 2032.0f / (GS_HEIGHT / 2);
+    guardia_x = guardia_x > GUARDIA_MAX ? GUARDIA_MAX : guardia_x;
+    guardia_y = guardia_y > GUARDIA_MAX ? GUARDIA_MAX : guardia_y;
     tmem_inicializar();
 }
 
@@ -504,7 +509,7 @@ static void liberar_measure(int interp_usado)
 
 static int candidato_interp(void)
 {
-    return interp_user && estado_juego == 4 && juego_en_pausa == 0;
+    return interp_user && estado_juego == 4 && juego_en_pausa == 0 && !gs_hires(); /* hires: 30 FPS */
 }
 
 /* Tras apagar el intermedio por falta de tiempo, tareas a 30 FPS antes de volver a probar:

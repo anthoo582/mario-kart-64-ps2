@@ -325,6 +325,9 @@ static int reservar_atlas(u32 w, u32 h, u32 alinear_x, int pagina_alineado, u16 
                 continue; /* REPEAT: el origen va alineado al ancho */
             }
             e = edad_franja(c0, cols, cy, estante_h);
+            if (e == 0 && gs_hires()) {
+                continue; /* hires replays the frame per band: what it already used must stay */
+            }
             if (!hay || e > mejor_edad) {
                 hay = 1;
                 mejor_edad = e;

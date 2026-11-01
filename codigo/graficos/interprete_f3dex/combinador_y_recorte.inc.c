@@ -142,10 +142,10 @@ static float dist_plano(const VerticeRecorte *v, int plano)
 {
     switch (plano) {
         case RECORTE_CERCA: return v->z + v->w;
-        case IZQUIERDA_RECORTE: return v->x + GUARDIA * v->w;
-        case DERECHA_RECORTE: return GUARDIA * v->w - v->x;
-        case ARRIBA_RECORTE: return GUARDIA * v->w - v->y;
-        default: return v->y + GUARDIA * v->w;
+        case IZQUIERDA_RECORTE: return v->x + guardia_x * v->w;
+        case DERECHA_RECORTE: return guardia_x * v->w - v->x;
+        case ARRIBA_RECORTE: return guardia_y * v->w - v->y;
+        default: return v->y + guardia_y * v->w;
     }
 }
 
@@ -190,8 +190,8 @@ static inline void proyectar_wi(const VerticeRecorte *c, GsVertex *o, float *sn,
     float sy = -yn * St.escala_vp[1] + St.vp_trans[1];
     float zf = __builtin_fminf(__builtin_fmaxf((1.0f - zn) * 0.5f, 0.0f), 1.0f);
 
-    o->x = sx * (GS_WIDTH / 320.0f);
-    o->y = sy * (GS_HEIGHT / 240.0f);
+    o->x = sx * gs_scale_x;
+    o->y = sy * gs_scale_y;
     o->z = (u32) (s32) (zf * 16777000.0f) + (decal ? 1024 : 0); /* zf en [0, 1]: cabe en s32 */
     if (St.valido_tex) {
         float s = c->s * mul_st[0] + agregar_st[0];
@@ -595,8 +595,8 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     (void) voltear;
 
     memset(&a, 0, sizeof(a));
-    a.x = ulx * (GS_WIDTH / 320.0f);
-    a.y = uly * (GS_HEIGHT / 240.0f);
+    a.x = ulx * gs_scale_x;
+    a.y = uly * gs_scale_y;
     a.z = 0;
     a.q = 1.0f;
     a.r = limitar_u8(cv.r);
@@ -605,8 +605,8 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
     a.fog = 255;
     b = a;
-    b.x = lrx * (GS_WIDTH / 320.0f);
-    b.y = lry * (GS_HEIGHT / 240.0f);
+    b.x = lrx * gs_scale_x;
+    b.y = lry * gs_scale_y;
     if (St.valido_tex) {
         float mitad = 0.0f;
 
@@ -705,8 +705,8 @@ static void dibujar_fillrect(u32 w0, u32 w1)
     rv.r = rv.g = rv.b = rv.a = 0;
         a_vertice_recorte(&rv, &cv);
         memset(&a, 0, sizeof(a));
-        a.x = ulx * (GS_WIDTH / 320.0f);
-        a.y = uly * (GS_HEIGHT / 240.0f);
+        a.x = ulx * gs_scale_x;
+        a.y = uly * gs_scale_y;
         a.q = 1.0f;
         a.r = limitar_u8(cv.r);
         a.g = limitar_u8(cv.g);
@@ -714,8 +714,8 @@ static void dibujar_fillrect(u32 w0, u32 w1)
         a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
         a.fog = 255;
         bb = a;
-        bb.x = lrx * (GS_WIDTH / 320.0f);
-        bb.y = lry * (GS_HEIGHT / 240.0f);
+        bb.x = lrx * gs_scale_x;
+        bb.y = lry * gs_scale_y;
         gs_sprite(&a, &bb);
     }
     St.sucio_estado = 1;

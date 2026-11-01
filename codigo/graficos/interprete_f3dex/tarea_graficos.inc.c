@@ -370,13 +370,22 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_DEV
     if (captura_pendiente_guion() != NULL) {
         gs_wait_flip();
-        volcar_frame(captura_pendiente_guion(), gs_screen_to_ct32() / 256, GS_WIDTH, GS_HEIGHT, GS_PSM_CT32);
+        if (gs_hires()) {
+            char path[64];
+
+            snprintf(path, sizeof(path), "host:%s.tga", captura_pendiente_guion());
+            bloquear_host();
+            gs_hires_capture(path);
+            desbloquear_host();
+        } else {
+            volcar_frame(captura_pendiente_guion(), gs_screen_to_ct32() / 256, GS_WIDTH, GS_HEIGHT, GS_PSM_CT32);
+        }
         captura_hecha_guion();
     }
 #endif
 #ifdef SMK64_DEV_FRAMEDUMP
     /* Volcados del framebuffer */
-    if (s_frame == 60 || s_frame == 200 || s_frame == 400 || s_frame == 700 || (s_frame % 1500) == 0) {
+    if (!gs_hires() && (s_frame == 60 || s_frame == 200 || s_frame == 400 || s_frame == 700 || (s_frame % 1500) == 0)) {
         char nombre[32];
 
         /* Espera a que el frame este en pantalla y lo guarda. */

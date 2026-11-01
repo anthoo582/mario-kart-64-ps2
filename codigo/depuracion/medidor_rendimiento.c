@@ -304,9 +304,16 @@ static void cerrar_ventana(u32 ahora, u32 vblank_ahora)
     texto_escribir_linea(&texto, 7, linea, a->cortes_audio != 0 ? TEXTO_AMARILLO : TEXTO_BLANCO);
 
     progreso_rom_ps2(&rom_cargados, &rom_total);
-    snprintf(linea, sizeof(linea), "OTROS HILOS %u%%  ROM EN RAM %u%%", (unsigned) pct_otros,
-             (unsigned) (rom_total != 0 ? rom_cargados * 100 / rom_total : 100));
-    texto_escribir_linea(&texto, 8, linea, (rom_total != 0 && rom_cargados < rom_total) ? TEXTO_AMARILLO : TEXTO_BLANCO);
+    if (gs_hires()) {
+        /* Cumulative: late passes mean the GS takes longer than a band to draw a frame */
+        snprintf(linea, sizeof(linea), "HIRES PASS %u LATE %u FLIP %u DROP %u", (unsigned) gs_stats.band_passes,
+                 (unsigned) gs_stats.band_overruns, (unsigned) gs_stats.flips, (unsigned) gs_stats.dropped);
+        texto_escribir_linea(&texto, 8, linea, gs_stats.band_overruns != 0 || gs_stats.dropped != 0 ? TEXTO_AMARILLO : TEXTO_BLANCO);
+    } else {
+        snprintf(linea, sizeof(linea), "OTROS HILOS %u%%  ROM EN RAM %u%%", (unsigned) pct_otros,
+                 (unsigned) (rom_total != 0 ? rom_cargados * 100 / rom_total : 100));
+        texto_escribir_linea(&texto, 8, linea, (rom_total != 0 && rom_cargados < rom_total) ? TEXTO_AMARILLO : TEXTO_BLANCO);
+    }
 
     hay_arranque = summary_tiempos_ps2("arranque", &arranque_us, &paso_largo_arranque, &largo_arranque_us);
     hay_carga = summary_tiempos_ps2("carga de pista", &carga_us, &paso_largo, &largo_us);
