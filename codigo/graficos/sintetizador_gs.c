@@ -33,6 +33,11 @@ typedef union {
 
 static Qword packets[PACKET_SLOTS][PACKET_QWORDS] __attribute__((aligned(64)));
 
+/* Upload capture for the 60 FPS frame; in hires (no 60 FPS) the sink for a frame that is cut short */
+#define CAPTURE_QWORDS (32 * 1024)
+static Qword capture_buf[CAPTURE_QWORDS] __attribute__((aligned(64)));
+static int sinking; /* hires: the packet is full; the rest of the frame goes to capture_buf, unsent */
+
 #define MAX_FRAME_FIXUPS 16
 
 typedef struct {
@@ -117,7 +122,7 @@ int gs_set_video_mode(int mode)
    fixup and rewritten for each band before the packet is sent. The colour framebuffer is written
    with FBP = band_base, a Z-buffer written as colour (gs_clear_z) with any other FBP. */
 #define HIRES_BANDS     3
-#define MAX_BAND_FIXUPS 8192
+#define MAX_BAND_FIXUPS 2048 /* ZBUF/SCISSOR are only written when they change: a race frame needs ~12 */
 
 typedef struct {
     u32 off;   /* qword offset in the packet */
@@ -130,10 +135,15 @@ static int band_h;             /* lines per band, multiple of 64 (CT16S/Z16S pag
 static u32 band_base;          /* FBP of band 0 */
 static u32 band_pages;         /* 8 KB pages per band */
 static int band_field_offset;  /* 1080i: XYOFFSET Y offset (1/16 px) for the even field */
-static u32 band_trigger_nominal[HIRES_BANDS]; /* CRTC line that starts each band's pass */
-static volatile u32 band_trigger[HIRES_BANDS]; /* the same in hsync interrupts counted */
+static u32 band_trigger[HIRES_BANDS]; /* CRTC line that starts each band's pass */
 static u32 band_nominal_lines;        /* scanlines per refresh (per field in 1080i) */
-static u32 band_counted_lines;        /* hsync interrupts per refresh the triggers are scaled to */
+/* The CRTC line is worked out from the CPU cycle counter since the last VBLANK, not by counting
+   HSINTs: a slow pass in the interrupt merges several HSINTs into one, so a count falls behind
+   (and never reached band 0's line in races), and emulators do not raise one per line either. */
+static volatile u32 refresh_start;    /* COP0 Count at the last VBLANK */
+static volatile u32 refresh_cycles;   /* measured refresh period */
+static volatile u32 line_mul;         /* band_nominal_lines / refresh_cycles in 0.32 fixed point */
+static volatile u32 bands_fired;      /* bands started (or queued) this refresh */
 static BandFixup *band_fixups[PACKET_SLOTS];
 static int band_num_fixups[PACKET_SLOTS];
 static int band_fixup_overflow[PACKET_SLOTS];
@@ -142,18 +152,23 @@ static int build_slot;                    /* slot of the packet being built */
 static volatile u32 slot_busy; /* packet buffers queued or in the GS */
 static volatile int hires_cur = -1;       /* slot being replayed */
 static volatile int hires_next = -1;      /* presented, shown from the next band 0 pass */
-static volatile u32 hsync_count;
 static volatile int render_field;         /* 1080i: field the current refresh is drawn for */
 static volatile int hires_paused;
 static volatile int band_waiting = -1; /* triggered while the previous pass was still being sent */
 static volatile int switch_due;        /* band 0's turn came: show hires_next from the next pass */
+static int uploads_lost;               /* an upload after the frame was cut never reached VRAM */
 
-/* Texture uploads of each packet, sent once ahead of its first pass instead of in every pass */
-#define UPLOAD_QWORDS 24576 /* 384 KB per slot; uploads beyond that go in the packet as before */
-static Qword *upload_buf[PACKET_SLOTS];
-static u32 upload_qwc[PACKET_SLOTS];
-static u64 upload_chain[PACKET_SLOTS][4] __attribute__((aligned(16))); /* DMA tags: REF uploads, REFE packet */
-static volatile u32 hires_vblanks, hires_last_lines; /* diagnostics: lines counted per refresh */
+/* Texture uploads go inline in the packet, as with gsKit's texture manager under gsHires: every
+   pass replays them before the draws that use them, so VRAM is right for the frame on every pass
+   however late it is. Each pass resends them, so a frame's uploads are capped (the texture cache
+   leaves the rest for the next frame), and the packet keeps room for the geometry after them. */
+#define UPLOAD_BUDGET       (384 * 1024)
+#define UPLOAD_GEOMETRY_QWC (16 * 1024) /* 256 KB */
+static u32 upload_bytes_frame;
+static volatile u32 hires_vblanks, hires_last_lines; /* diagnostics: last line seen per refresh */
+static volatile u32 band_start_line[HIRES_BANDS];     /* diagnostics: CRTC line each band last started on */
+static volatile u32 hsint_count, hsint_last;          /* diagnostics: HSINTs this refresh / last refresh */
+static volatile u32 hsint_rearms;                     /* refreshes with no HSINT, after which it was re-armed */
 static u32 band_fixups_max, band_qwc_max, band_dropped_overflow;
 
 int gs_hires(void)
@@ -161,12 +176,38 @@ int gs_hires(void)
     return hires;
 }
 
+int gs_upload_fits(u32 bytes)
+{
+    return !hires || (!sinking && upload_bytes_frame + bytes <= UPLOAD_BUDGET &&
+                      (u32) (cur - s_pkt) + (bytes + 15) / 16 + UPLOAD_GEOMETRY_QWC < PACKET_QWORDS);
+}
+
+void gs_hires_diag(u32 out[6])
+{
+    int i;
+
+    for (i = 0; i < 3; i++) {
+        out[i] = i < HIRES_BANDS ? band_start_line[i] : 0;
+    }
+    out[3] = hsint_last;
+    out[4] = refresh_cycles / 295; /* us */
+    out[5] = hsint_rearms;
+}
+
+int gs_take_lost_uploads(void)
+{
+    int lost = uploads_lost;
+
+    uploads_lost = 0;
+    return lost;
+}
+
 #ifdef SMK64_DEV
 /* Called from the VI thread every couple of seconds */
 void gs_hires_log_status(void)
 {
     if (hires) {
-        printf("smk64: GS hires: vblank %u lines %u (band 0 at %u) passes %u overruns %u flips %u dropped %u (packet full %u) "
+        printf("smk64: GS hires: vblank %u last line %u (band 0 at %u) passes %u overruns %u flips %u dropped %u (packet full %u) "
                "max fixups %u max qwc %u busy %x cur %d next %d\n",
                (unsigned) hires_vblanks, (unsigned) hires_last_lines, (unsigned) band_trigger[0], (unsigned) gs_stats.band_passes,
                (unsigned) gs_stats.band_overruns, (unsigned) gs_stats.flips, (unsigned) gs_stats.dropped,
@@ -203,7 +244,7 @@ static void packet_full(void);
 /* Ensures there is room for n qwords */
 static inline void reserve(u32 n)
 {
-    if ((u32) (cur - s_pkt) + n + 8 >= PACKET_QWORDS) {
+    if ((u32) (cur - s_pkt) + n + 8 >= (sinking ? CAPTURE_QWORDS : PACKET_QWORDS)) {
         packet_full();
     }
 }
@@ -227,7 +268,7 @@ static inline void ad(u32 reg, u64 value)
 /* ad() for FRAME_1/ZBUF_1/XYOFFSET_1/SCISSOR_1 inside a packet: in hires they depend on the band */
 static inline void ad_band(u32 reg, u64 value)
 {
-    if (hires) {
+    if (hires && !sinking) {
         if (band_num_fixups[build_slot] < MAX_BAND_FIXUPS) {
             BandFixup *f = &band_fixups[build_slot][band_num_fixups[build_slot]++];
 
@@ -235,10 +276,31 @@ static inline void ad_band(u32 reg, u64 value)
             f->reg = reg;
             f->value = value;
         } else {
-            band_fixup_overflow[build_slot] = 1;
+            band_fixup_overflow[build_slot] = 1; /* not reached: band_room() is checked first */
         }
     }
     ad(reg, value);
+}
+
+/* Hires: the frame does not fit (packet or band fixups) and cannot be sent in pieces, since every
+   band replays all of it. It is shown cut short at this point, and the rest of the frame is
+   written into capture_buf and never sent. Dropping the whole frame instead would show nothing
+   at all when every frame is too big. */
+static void hires_sink(void)
+{
+    flush_prims();
+    packet_info[cur_packet].end = cur;
+    sinking = 1;
+    s_pkt = cur = capture_buf;
+    gs_stats.dropped++;
+}
+
+/* Before a block that writes k band fixups: the list must not run out halfway through it */
+static inline void band_room(int k)
+{
+    if (hires && !sinking && band_num_fixups[build_slot] + k > MAX_BAND_FIXUPS) {
+        hires_sink();
+    }
 }
 
 #define D2_CHCR ((volatile u32 *) 0x1000A000)
@@ -513,29 +575,16 @@ static void patch_band(int slot, int band)
 
 static void band_kick(int slot)
 {
+    __asm__ __volatile__("sync.l" ::: "memory"); /* the fixups were written uncached: let them land first */
     *(volatile u32 *) 0x1000A020 = (u32) (band_packet_end[slot] - packets[slot]);
     *(volatile u32 *) 0x1000A010 = (u32) packets[slot] & 0x0FFFFFFF;
     *(volatile u32 *) 0x1000A000 = 0x101;
 }
 
-/* First pass of a packet: its uploads, then the packet, as one DMA chain */
-static void band_kick_with_uploads(int slot)
-{
-    volatile u64 *t = (volatile u64 *) ((u32) upload_chain[slot] | 0x20000000);
-
-    t[0] = (u64) upload_qwc[slot] | (3ULL << 28) | ((u64) ((u32) upload_buf[slot] & 0x0FFFFFFF) << 32); /* REF */
-    t[1] = 0;
-    t[2] = (u64) (band_packet_end[slot] - packets[slot]) | ((u64) ((u32) packets[slot] & 0x0FFFFFFF) << 32); /* REFE */
-    t[3] = 0;
-    *(volatile u32 *) 0x1000A020 = 0;
-    *(volatile u32 *) 0x1000A030 = (u32) upload_chain[slot] & 0x0FFFFFFF; /* D2_TADR */
-    *(volatile u32 *) 0x1000A000 = 0x105; /* source chain */
-}
+static u32 crtc_line(void);
 
 static void band_start(int band)
 {
-    int first = 0;
-
     if (en_panico_ps2 || hires_paused) {
         return;
     }
@@ -549,7 +598,6 @@ static void band_start(int band)
             }
             hires_cur = hires_next;
             hires_next = -1;
-            first = 1;
             gs_stats.flips++;
             iSignalSema(flip_sema);
         }
@@ -558,11 +606,8 @@ static void band_start(int band)
         return;
     }
     patch_band(hires_cur, band);
-    if (first && upload_qwc[hires_cur] != 0) {
-        band_kick_with_uploads(hires_cur);
-    } else {
-        band_kick(hires_cur);
-    }
+    band_kick(hires_cur);
+    band_start_line[band] = crtc_line();
     gs_stats.band_passes++;
 }
 
@@ -584,30 +629,61 @@ static void band_pass(int band)
     band_start(band);
 }
 
+static inline u32 read_cycles(void)
+{
+    u32 c;
+
+    __asm__ __volatile__("mfc0 %0, $9" : "=r"(c));
+    return c;
+}
+
+/* Current CRTC line (per field in 1080i) */
+static u32 crtc_line(void)
+{
+    u32 elapsed = read_cycles() - refresh_start;
+
+    /* A multiply: this runs on every HSINT (~34k/s in 1080i), where a 64-bit divide is a libgcc call */
+    return (u32) (((u64) elapsed * line_mul) >> 32);
+}
+
+/* Starts every band whose line has passed and that has not started this refresh */
+static void band_poll(void)
+{
+    u32 line = crtc_line();
+    int band;
+
+    hires_last_lines = line;
+    /* In trigger order: bands 1 and 2 during the display, band 0 while the CRTC shows band 2 */
+    for (band = 1; band <= HIRES_BANDS; band++) {
+        int b = band % HIRES_BANDS;
+
+        if (!(bands_fired & (1u << b)) && line >= band_trigger[b]) {
+            bands_fired |= 1u << b;
+            band_pass(b);
+        }
+    }
+}
+
 static int band_gs_interrupt(int cause)
 {
     u64 csr = *CSR;
+    u32 events = (u32) csr & 0x1F; /* SIGNAL, FINISH, HSINT, VSINT, EDWINT */
     int band;
 
     (void) cause;
-    if (csr & 8) { /* VSINT: line count restarts */
-        *CSR = 8;
-        hsync_count = 0;
+    /* Clear every pending event, not just HSINT: one left set keeps the GS interrupt line high, the
+       INTC only sees rising edges, and HSINT never arrives again (bands 1 and 2 stopped for good) */
+    if (events != 0) {
+        *CSR = events;
     }
-    if (csr & 4) { /* HSINT */
-        *CSR = 4;
-        hsync_count++;
+    if (events & 4) { /* HSINT: just a regular tick to check the line and the DMA */
+        hsint_count++;
         if (band_waiting >= 0 && !(*D2_CHCR & 0x100)) {
             band = band_waiting;
             band_waiting = -1;
             band_start(band);
         }
-        for (band = 0; band < HIRES_BANDS; band++) {
-            if (hsync_count == band_trigger[band]) {
-                band_pass(band);
-                break;
-            }
-        }
+        band_poll();
     }
     ExitHandler();
     return 0;
@@ -637,18 +713,22 @@ static void hires_init(void)
     for (band = 0; band < HIRES_BANDS; band++) {
         u32 scan = (u32) ((band + HIRES_BANDS - 1) % HIRES_BANDS) * band_h * (s_gs->MagV + 1);
 
+        /* As in gsHires: halved only in FIELD mode. Halving it in 1080i too (FRAME, MagV 1) looks
+           right on paper but put the passes out of step with the CRTC on real hardware. */
         if (s_gs->Interlace == GS_INTERLACED && s_gs->Field == GS_FIELD) {
             scan /= 2;
         }
-        band_trigger_nominal[band] = band_trigger[band] = y_start + scan;
+        band_trigger[band] = y_start + scan;
     }
-    band_nominal_lines = band_counted_lines = (s_gs->Mode == GS_MODE_DTV_1080I) ? 562 : 750;
+    band_nominal_lines = (s_gs->Mode == GS_MODE_DTV_1080I) ? 562 : 750;
+    refresh_cycles = 294912000u / 60; /* refined from the measured VBLANK period */
+    line_mul = (u32) (((u64) band_nominal_lines << 32) / refresh_cycles);
+    refresh_start = read_cycles();
 
     for (i = 0; i < PACKET_SLOTS; i++) {
         band_fixups[i] = memalign(64, sizeof(BandFixup) * MAX_BAND_FIXUPS);
-        upload_buf[i] = memalign(64, sizeof(Qword) * UPLOAD_QWORDS);
-        if (band_fixups[i] == NULL || upload_buf[i] == NULL) {
-            detener_por_error("GS: no memory for the hires band fixups and uploads");
+        if (band_fixups[i] == NULL) {
+            detener_por_error("GS: no memory for the hires band fixups");
         }
     }
 
@@ -668,19 +748,35 @@ void gs_on_vblank(void)
     if (hires) {
         /* Flips happen in band_pass. The hsync count restarts here too: the GS VSINT bit is
            polled in band_gs_interrupt, but not every emulator sets it with VSINT masked. */
-        hires_vblanks++;
-        hires_last_lines = hsync_count;
-        hsync_count = 0;
-        /* Emulators do not always raise one HSINT per scanline (PCSX2 gives 517 of 750 in 720p):
-           scale the trigger lines to what is counted, so band 0 is still started. */
-        if (hires_last_lines > band_nominal_lines / 2 && hires_last_lines != band_counted_lines) {
-            int band;
+        u32 now = read_cycles();
 
-            band_counted_lines = hires_last_lines;
-            for (band = 0; band < HIRES_BANDS; band++) {
-                band_trigger[band] = band_trigger_nominal[band] * band_counted_lines / band_nominal_lines;
+        hires_vblanks++;
+        /* Band 0 must start every refresh or no new frame is ever shown: if its line was not
+           seen (passes too slow for the HSINT ticks), start it now, late rather than never */
+        if (!(bands_fired & 1u)) {
+            band_pass(0);
+        }
+        /* Refresh period, ignoring VBLANKs that are far off (the first, or after a long pause) */
+        {
+            u32 period = now - refresh_start;
+
+            if (refresh_cycles == 0 || (period > refresh_cycles / 2 && period < refresh_cycles * 2)) {
+                refresh_cycles = refresh_cycles == 0 ? period : (refresh_cycles * 7 + period) / 8;
+                line_mul = (u32) (((u64) band_nominal_lines << 32) / refresh_cycles);
             }
         }
+        refresh_start = now;
+        bands_fired = 0;
+        /* A whole refresh without HSINT: clear the GS events (one stuck set blocks the interrupt
+           line) and make sure the GS interrupt is enabled, so bands 1 and 2 start again */
+        if (hsint_count == 0 && hires_vblanks > 2) {
+            *CSR = 0x1F;
+            iEnableIntc(INTC_GS);
+            hsint_rearms++;
+        }
+        hsint_last = hsint_count;
+        hsint_count = 0;
+        iSignalSema(flip_sema); /* lets gs_wait_flip notice a flip that never comes */
         return;
     }
     if (en_panico_ps2) {
@@ -712,10 +808,49 @@ void gs_on_vblank(void)
 }
 
 /* Waits until everything queued is on screen. */
+/* For the crash screen (also called from its stuck-GIF handler, before the GIF is reset): hires
+   status, and the 16 qwords before MADR. When the GS stops taking data it is on one of those: the
+   GIF FIFO holds up to 16 qwords past it. */
+void gs_log_gif_stall(void)
+{
+    u32 madr = *(volatile u32 *) 0x1000A010 & 0x0FFFFFFF;
+    int k;
+
+    if (hires) {
+        registrar("GS hires: line %u passes %u late %u flips %u cut %u", (unsigned) hires_last_lines,
+                (unsigned) gs_stats.band_passes, (unsigned) gs_stats.band_overruns, (unsigned) gs_stats.flips,
+                (unsigned) gs_stats.dropped);
+        registrar("waiting %d cur %d next %d fixups %d pkt %x-%x upl %uK", band_waiting, hires_cur, hires_next,
+                hires_cur >= 0 ? band_num_fixups[hires_cur] : -1,
+                hires_cur >= 0 ? (unsigned) ((u32) packets[hires_cur] & 0x0FFFFFFF) : 0u,
+                hires_cur >= 0 ? (unsigned) ((u32) band_packet_end[hires_cur] & 0x0FFFFFFF) : 0u,
+                (unsigned) (upload_bytes_frame / 1024));
+    }
+    registrar("chcr %x qwc %x madr %x tadr %x csr %x", (unsigned) *D2_CHCR, (unsigned) *(volatile u32 *) 0x1000A020,
+            (unsigned) madr, (unsigned) *(volatile u32 *) 0x1000A030, (unsigned) *CSR);
+    if (madr >= 16 * 16 && madr < 32 * 1024 * 1024) {
+        const volatile u64 *q = (const volatile u64 *) ((madr - 16 * 16) | 0x20000000);
+
+        /* Each qword as its high then low 64 bits, oldest first */
+        for (k = 0; k < 16; k += 2, q += 4) {
+            registrar("-%02d %08x%08x%08x%08x %08x%08x%08x%08x", 16 - k, (unsigned) (q[1] >> 32), (unsigned) q[1],
+                    (unsigned) (q[0] >> 32), (unsigned) q[0], (unsigned) (q[3] >> 32), (unsigned) q[3],
+                    (unsigned) (q[2] >> 32), (unsigned) q[2]);
+        }
+    }
+}
+
 void gs_wait_flip(void)
 {
+    u32 since = hires_vblanks;
+    int logged = 0;
+
     while (pending_flip >= 0 || queue_count > 0 || hires_next >= 0) {
         WaitSema(flip_sema);
+        if (hires && !logged && hires_vblanks - since > 120) {
+            logged = 1;
+            gs_log_gif_stall();
+        }
     }
 }
 
@@ -762,6 +897,14 @@ static void packet_full(void)
     PacketInfo *pi = &packet_info[cur_packet];
 
     flush_prims();
+    if (hires) {
+        if (sinking) {
+            cur = s_pkt; /* the sink is never sent: start it over */
+        } else {
+            hires_sink();
+        }
+        return;
+    }
     if (pi->flags & GS_PACKET_NO_PARTIAL) {
         pi->overflow = 1;
         cur = s_pkt + 16;
@@ -816,7 +959,8 @@ void gs_begin_packet(int packet, int buffer, int flags)
     build_slot = packet_slot[packet];
     band_num_fixups[build_slot] = 0;
     band_fixup_overflow[build_slot] = 0;
-    upload_qwc[build_slot] = 0;
+    upload_bytes_frame = 0;
+    sinking = 0;
     s_pkt = cur = packets[packet_slot[packet]];
     prim_tag = NULL;
     state_valid = 0;
@@ -862,7 +1006,9 @@ void gs_finish_packet(int black)
     ad(GSR_FINISH, 0);
     tag->d[0] |= 1ULL << 15;
     flush_prims();
-    packet_info[cur_packet].end = cur;
+    if (!sinking) {
+        packet_info[cur_packet].end = cur; /* otherwise hires_sink set where it was cut */
+    }
 }
 
 int gs_packet_failed(int packet)
@@ -892,6 +1038,40 @@ void gs_retarget_packet(int packet, int buffer)
     }
 }
 
+/* Hires: a frame is replayed every pass, so one malformed GIF tag or misplaced band fixup would
+   leave the GS waiting for data forever and freeze the picture with no clue why. Walking the tags
+   costs little next to building the frame: stop with what is wrong instead. */
+static void hires_check_packet(int slot, const Qword *end)
+{
+    const Qword *start = packets[slot], *q = start;
+    int i;
+
+    while (q < end) {
+        u64 t = q->d[0];
+        u32 nloop = (u32) (t & 0x7FFF), flg = (u32) (t >> 58) & 3, nreg = (u32) (t >> 60) & 0xF, n;
+
+        nreg = nreg == 0 ? 16 : nreg;
+        n = flg == GIF_FLG_PACKED ? nloop * nreg : flg == 1 ? (nloop * nreg + 1) / 2 : nloop;
+        if (q + 1 + n > end) {
+            registrar("GS: bad hires packet: tag %08x%08x at %u runs %u qwords past the end (%u)",
+                    (unsigned) (t >> 32), (unsigned) t, (unsigned) (q - start), (unsigned) (q + 1 + n - end),
+                    (unsigned) (end - start));
+            detener_por_error("GS: malformed hires packet (GIF tag)");
+        }
+        q += 1 + n;
+    }
+    for (i = 0; i < band_num_fixups[slot]; i++) {
+        const BandFixup *f = &band_fixups[slot][i];
+
+        if (f->off >= (u32) (end - start) || start[f->off].d[1] != f->reg || start[f->off].d[0] != f->value) {
+            registrar("GS: bad band fixup %d/%d: off %u reg %x, packet has reg %x (%u qwords)", i,
+                    band_num_fixups[slot], (unsigned) f->off, (unsigned) f->reg,
+                    f->off < (u32) (end - start) ? (unsigned) start[f->off].d[1] : 0u, (unsigned) (end - start));
+            detener_por_error("GS: malformed hires packet (band fixup)");
+        }
+    }
+}
+
 void gs_present_packet(int packet)
 {
     PacketInfo *pi = &packet_info[packet];
@@ -909,17 +1089,23 @@ void gs_present_packet(int packet)
         if (qwc > band_qwc_max) {
             band_qwc_max = qwc;
         }
-        if (pi->overflow || band_fixup_overflow[slot]) {
-            gs_stats.dropped++; /* cannot be replayed per band: the previous frame stays */
-            band_dropped_overflow += pi->overflow != 0;
-            return;
-        }
         band_packet_end[slot] = pi->end;
+        hires_check_packet(slot, pi->end);
+        /* A frame's uploads are only in its own packet, so a frame that is never shown would leave
+           textures the cache thinks are in VRAM: wait (at most a refresh) for the pending one
+           instead of replacing it */
+#ifdef SMK64_MEDIDOR
+        {
+            u32 t0 = medidor_leer_ciclos();
+
+            gs_wait_flip();
+            medidor_sumar_espera_gs(medidor_leer_ciclos() - t0); /* "GS" on the meter */
+        }
+#else
+        gs_wait_flip();
+#endif
         FlushCache(0);
         intr = DI();
-        if (hires_next >= 0) {
-            slot_busy &= ~(1u << hires_next); /* replaced before it was shown */
-        }
         slot_busy |= 1u << slot;
         hires_next = slot;
         if (intr) {
@@ -962,9 +1148,6 @@ void gs_end_frame(int black)
     gs_present_packet(GS_PACKET_REAL);
 }
 
-#define CAPTURE_QWORDS (32 * 1024)
-
-static Qword capture_buf[CAPTURE_QWORDS] __attribute__((aligned(64)));
 static u32 capture_len;
 static int capturing, capture_overflow;
 
@@ -1021,6 +1204,7 @@ void gs_apply_state(const GsState *st)
 {
     Qword *tag;
     u32 n = 0;
+    int zs;
 
     if (state_valid && st->test == state.test && st->alpha == state.alpha && st->zbuf == state.zbuf &&
         st->tex0 == state.tex0 && st->tex1 == state.tex1 && st->clamp == state.clamp &&
@@ -1032,20 +1216,29 @@ void gs_apply_state(const GsState *st)
         }
         return;
     }
+    /* Hires: ZBUF and SCISSOR are band fixups, rewritten for every band; they rarely change, so
+       they are only written when they do */
+    zs = !hires || !state_valid || st->zbuf != state.zbuf || st->scissor != state.scissor;
+    if (zs) {
+        band_room(2);
+    }
     begin_ad(&tag, 9);
     ad(GSR_TEST_1, st->test);
     ad(GSR_ALPHA_1, st->alpha);
-    ad_band(GSR_ZBUF_1, st->zbuf);
-    ad_band(GSR_SCISSOR_1, st->scissor);
+    n = 2;
+    if (zs) {
+        ad_band(GSR_ZBUF_1, st->zbuf);
+        ad_band(GSR_SCISSOR_1, st->scissor);
+        n += 2;
+    }
     ad(GSR_FOGCOL, st->fogcol);
     ad(GSR_DTHE, st->dither ? 1 : 0);
+    n += 2;
     if (st->textured) {
         ad(GSR_TEX0_1, st->tex0);
         ad(GSR_TEX1_1, st->tex1);
         ad(GSR_CLAMP_1, st->clamp);
-        n = 9;
-    } else {
-        n = 6;
+        n += 3;
     }
     tag->d[0] = giftag_lo(n, 0, 0, 0, GIF_FLG_PACKED, 1);
     cur = tag + 1 + n;
@@ -1153,8 +1346,48 @@ void gs_triangle(const GsVertex *v0, const GsVertex *v1, const GsVertex *v2)
     gs_stats.triangles++;
 }
 
+/* Clips one axis of a sprite to lo..hi, moving the texture coordinate with it. 0: nothing left. */
+static int clip_sprite_axis(float *a, float *b, float *ta, float *tb, float lo, float hi)
+{
+    float a0 = *a, b0 = *b, ta0 = *ta, tb0 = *tb;
+    int flip = a0 > b0;
+
+    if (flip) {
+        a0 = *b, b0 = *a, ta0 = *tb, tb0 = *ta;
+    }
+    if (b0 <= lo || a0 >= hi) {
+        return 0;
+    }
+    if (a0 < lo) {
+        *(flip ? tb : ta) = ta0 + (tb0 - ta0) * (lo - a0) / (b0 - a0);
+        *(flip ? b : a) = lo;
+    }
+    if (b0 > hi) {
+        *(flip ? ta : tb) = ta0 + (tb0 - ta0) * (hi - a0) / (b0 - a0);
+        *(flip ? a : b) = hi;
+    }
+    return 1;
+}
+
 void gs_sprite(const GsVertex *tl, const GsVertex *br)
 {
+    /* Rectangles can reach N64 x/y 1023: keep them where the GS can draw (window coordinates up to
+       2047, primitive coordinates from 0; hires bands shift window y up by under GS_HEIGHT) */
+    if (tl->x < -XYOFFSET_X || br->x < -XYOFFSET_X || tl->x > 2040.0f || br->x > 2040.0f ||
+        tl->y < GS_HEIGHT - 2040.0f || br->y < GS_HEIGHT - 2040.0f || tl->y > 2040.0f || br->y > 2040.0f) {
+        GsVertex a = *tl, b = *br;
+
+        if (!clip_sprite_axis(&a.x, &b.x, &a.s, &b.s, (float) -XYOFFSET_X, 2040.0f) ||
+            !clip_sprite_axis(&a.y, &b.y, &a.t, &b.t, GS_HEIGHT - 2040.0f, 2040.0f)) {
+            return;
+        }
+        reserve(10);
+        open_prims(PRIM_SPRITE);
+        emit_vertex(&a);
+        emit_vertex(&b);
+        gs_stats.sprites++;
+        return;
+    }
     reserve(10);
     open_prims(PRIM_SPRITE);
     emit_vertex(tl);
@@ -1203,6 +1436,7 @@ void gs_clear_z(void)
     Qword *tag;
     GsVertex a, c;
 
+    band_room(4);
     begin_ad(&tag, 4);
     if (hires) {
         /* Z16S has the CT16S layout; any FBP other than band_base means "this band's Z-buffer" */
@@ -1426,34 +1660,13 @@ void gs_upload_image(u32 tbp, u32 tbw, u32 psm, u32 x, u32 y, const void *pixels
     Qword *tag;
     u32 qwc = (bytes + 15) / 16;
 
-    if (hires && upload_qwc[build_slot] + qwc + 8 <= UPLOAD_QWORDS) {
-        /* Into the slot's upload stream, sent once before the packet's first pass. Hoisting it
-           ahead of the frame's earlier draws is safe: the texture cache never reuses VRAM that
-           this frame already drew with (see reservar_atlas), and nothing else uploads twice. */
-        Qword *q = upload_buf[build_slot] + upload_qwc[build_slot];
-
-        q->d[0] = giftag_lo(4, 0, 0, 0, GIF_FLG_PACKED, 1);
-        q->d[1] = GIF_REG_AD;
-        q[1].d[0] = ((u64) tbp << 32) | ((u64) tbw << 48) | ((u64) psm << 56);
-        q[1].d[1] = GSR_BITBLTBUF;
-        q[2].d[0] = ((u64) (x & 0x7FF) << 32) | ((u64) (y & 0x7FF) << 48);
-        q[2].d[1] = GSR_TRXPOS;
-        q[3].d[0] = (u64) w | ((u64) h << 32);
-        q[3].d[1] = GSR_TRXREG;
-        q[4].d[0] = 0;
-        q[4].d[1] = GSR_TRXDIR;
-        q[5].d[0] = giftag_lo(qwc, 0, 0, 0, GIF_FLG_IMAGE, 0);
-        q[5].d[1] = 0;
-        memcpy(&q[6], pixels, qwc * 16);
-        q[6 + qwc].d[0] = giftag_lo(1, 0, 0, 0, GIF_FLG_PACKED, 1);
-        q[6 + qwc].d[1] = GIF_REG_AD;
-        q[7 + qwc].d[0] = 0;
-        q[7 + qwc].d[1] = GSR_TEXFLUSH;
-        upload_qwc[build_slot] += qwc + 8;
-        gs_stats.uploads++;
-        gs_stats.upload_bytes += qwc * 16;
+    if (hires && (sinking || (u32) (cur - s_pkt) + qwc + 24 >= PACKET_QWORDS)) {
+        /* The frame was cut short (the texture cache checks gs_upload_fits first, so only the
+           debug text gets here): the texture never reaches VRAM */
+        uploads_lost = 1;
         return;
     }
+    upload_bytes_frame += qwc * 16;
 
     /* All in one go */
     flush_prims();

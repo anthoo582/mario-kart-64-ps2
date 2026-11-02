@@ -17,7 +17,7 @@ enum {
 
 /* Mode used at boot: make EXTRA_DEFINES=-DGS_VIDEO_MODE=GS_VIDEO_480P */
 #ifndef GS_VIDEO_MODE
-#define GS_VIDEO_MODE GS_VIDEO_1080I
+#define GS_VIDEO_MODE GS_VIDEO_480P
 #endif
 
 /* Only before gs_init: the VRAM layout (framebuffers, texture atlas) is fixed after that.
@@ -25,6 +25,14 @@ enum {
 int gs_set_video_mode(int mode);
 /* 1 in 720p/1080i (banded multi-pass rendering), valid after gs_init */
 int gs_hires(void);
+/* Hires: 0 if an upload of this size would go over this frame's upload budget (every band pass
+   resends the frame's uploads); the texture cache then leaves the texture for a later frame */
+int gs_upload_fits(u32 bytes);
+/* Hires: 1 once after an upload was skipped, so the texture cache stops trusting VRAM */
+int gs_take_lost_uploads(void);
+/* Hires diagnostics: CRTC line (per field in 1080i) each band's pass last started on, HSINTs in
+   the last refresh, measured refresh period in us, times HSINT had to be re-armed */
+void gs_hires_diag(u32 out[6]);
 
 /* Output resolution, set by the video mode in gs_init */
 extern int gs_width, gs_height;
@@ -91,6 +99,7 @@ int gs_capture_failed(void);
 void gs_emit_captured_uploads(void);
 void gs_on_vblank(void); /* called from the VBLANK interrupt */
 void gs_wait_flip(void);
+void gs_log_gif_stall(void); /* crash screen: GS state and the data before the stall */
 
 void gs_apply_state(const GsState *st);
 void gs_triangle(const GsVertex *v0, const GsVertex *v1, const GsVertex *v2);
@@ -135,7 +144,7 @@ typedef struct {
     /* Hires (cumulative) */
     u32 band_passes;   /* band passes sent to the GS */
     u32 band_overruns; /* passes skipped: the previous one was still being sent */
-    u32 dropped;       /* frames not shown: packet or band fixup list overflowed */
+    u32 dropped;       /* frames cut short: packet or band fixup list full */
 } GsStats;
 extern GsStats gs_stats;
 

@@ -31,16 +31,72 @@ static volatile s32 hilo_inactivo = -1;
 static volatile u32 muestras_totales, muestras_inactivo;
 static volatile u32 muestras_por_hilo[HILOS_MUESTREO];
 
+#ifdef SMK64_MEDIDOR
+/* On-screen profile (meter page): busy samples per 128 bytes of code */
+#define PERFIL_DESPL 7
+#define PERFIL_CUBOS ((1536 * 1024) >> PERFIL_DESPL)
+static u32 perfil_cubos[PERFIL_CUBOS];
+static volatile u32 perfil_total, perfil_kernel;
+static volatile int perfil_activo_pantalla;
+#endif
+
 static void contar_muestra_cpu(u32 epc)
 {
     s32 th = _iGetThreadId();
+    int inactivo = th == hilo_inactivo || epc - inicio_bucle_inactivo < largo_bucle_inactivo;
 
     muestras_totales++;
-    if (th == hilo_inactivo || epc - inicio_bucle_inactivo < largo_bucle_inactivo) {
+    if (inactivo) {
         muestras_inactivo++;
     }
     muestras_por_hilo[(th > 0 && th < HILOS_MUESTREO) ? th : 0]++;
+#ifdef SMK64_MEDIDOR
+    if (perfil_activo_pantalla && !inactivo) {
+        u32 apagado = epc - (u32) _ftext;
+
+        perfil_total++;
+        if (epc >= 0x80000000u) {
+            perfil_kernel++;
+        } else if ((apagado >> PERFIL_DESPL) < PERFIL_CUBOS) {
+            perfil_cubos[apagado >> PERFIL_DESPL]++;
+        }
+    }
+#endif
 }
+
+#ifdef SMK64_MEDIDOR
+void perfil_pantalla_empezar(void)
+{
+    perfil_activo_pantalla = 0;
+    memset(perfil_cubos, 0, sizeof(perfil_cubos));
+    perfil_total = perfil_kernel = 0;
+    perfil_activo_pantalla = 1;
+}
+
+/* The n hottest 128-byte code blocks: address and samples, hottest first */
+int perfil_pantalla_top(u32 *dir, u32 *muestras, int n, u32 *total, u32 *kernel)
+{
+    int i, k, cuantos = 0;
+
+    for (i = 0; i < PERFIL_CUBOS; i++) {
+        u32 v = perfil_cubos[i];
+
+        if (v == 0 || (cuantos == n && v <= muestras[n - 1])) {
+            continue;
+        }
+        k = cuantos < n ? cuantos++ : n - 1;
+        for (; k > 0 && muestras[k - 1] < v; k--) {
+            muestras[k] = muestras[k - 1];
+            dir[k] = dir[k - 1];
+        }
+        muestras[k] = v;
+        dir[k] = (u32) _ftext + ((u32) i << PERFIL_DESPL);
+    }
+    *total = perfil_total;
+    *kernel = perfil_kernel;
+    return cuantos;
+}
+#endif
 
 #ifndef SMK64_PROF
 static s32 muestreador_manejador(s32 causa)

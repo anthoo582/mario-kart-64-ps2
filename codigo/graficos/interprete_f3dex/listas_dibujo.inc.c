@@ -279,12 +279,12 @@ static void ejecutar_dl(Gfx *dl)
                 St.profundidad_prim = w1;
                 break;
             case G_SETSCISSOR: {
-                float sx = gs_scale_x, sy = gs_scale_y;
+                float sy = gs_scale_y;
                 int viejo[4] = { St.tijera[0], St.tijera[1], St.tijera[2], St.tijera[3] };
 
-                St.tijera[0] = (int) (((w0 >> 12) & 0xFFF) * 0.25f * sx);
+                St.tijera[0] = (int) ws_x(((w0 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[1] = (int) ((w0 & 0xFFF) * 0.25f * sy);
-                St.tijera[2] = (int) (((w1 >> 12) & 0xFFF) * 0.25f * sx);
+                St.tijera[2] = (int) ws_x(((w1 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[3] = (int) ((w1 & 0xFFF) * 0.25f * sy);
                 if (St.tijera[2] > GS_WIDTH) St.tijera[2] = GS_WIDTH;
                 if (St.tijera[3] > GS_HEIGHT) St.tijera[3] = GS_HEIGHT;
@@ -391,10 +391,12 @@ void inicializar_renderizador(void)
     St.mirada[0][0] = 127;
     St.mirada[1][1] = 127;
     gs_init();
-    /* Viewports lie inside the screen, so this bound also holds for split-screen */
-    guardia_x = 2032.0f / (GS_WIDTH / 2);
-    guardia_y = 2032.0f / (GS_HEIGHT / 2);
-    guardia_x = guardia_x > GUARDIA_MAX ? GUARDIA_MAX : guardia_x;
+    /* 720p and 1080i are 16:9 */
+    ws_widen = (SMK64_WIDESCREEN && gs_hires()) ? (16.0f / 9.0f) / (4.0f / 3.0f) : 1.0f;
+    ws_scale_x = gs_scale_x / ws_widen;
+    /* y: viewports are at most the screen height, centred at most H/2 from the top; hires bands
+       shift window y up by under H, so y within -(2040 - H) .. 2040 is safe both ways */
+    guardia_y = (GUARDIA_VENTANA_MAX - GS_HEIGHT) / (GS_HEIGHT / 2) + 1.0f;
     guardia_y = guardia_y > GUARDIA_MAX ? GUARDIA_MAX : guardia_y;
     tmem_inicializar();
 }
@@ -423,6 +425,7 @@ static void reiniciar_estado_rsp(void)
     St.vp_trans[0] = 160.0f;
     St.vp_trans[1] = 120.0f;
     St.vp_trans[2] = 511.0f;
+    ws_viewport();
     St.tijera[0] = 0;
     St.tijera[1] = 0;
     St.tijera[2] = GS_WIDTH;

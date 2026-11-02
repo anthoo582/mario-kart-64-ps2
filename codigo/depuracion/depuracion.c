@@ -8,6 +8,7 @@
 #include <ultra64.h>
 
 #include "graficos/interprete_f3dex.h"
+#include "graficos/sintetizador_gs.h"
 #include "sistema/sistema_ps2.h"
 #include "sistema/cronometro_fases.h"
 
@@ -252,6 +253,7 @@ static void rescate_gif(void)
     }
     snprintf(estado_gif, sizeof(estado_gif), "GIF atascado: D2_CHCR %08x MADR %08x QWC %x GIF_STAT %08x",
              (unsigned) *chcr, (unsigned) *madr, (unsigned) *qwc, (unsigned) *est_gif);
+    gs_log_gif_stall(); /* before the reset below: what the GS stopped on */
     *activar_w = *activar_r | 0x10000; /* suspende el DMA */
     *chcr &= ~0x100u;
     *activar_w = *activar_r & ~0x10000u;

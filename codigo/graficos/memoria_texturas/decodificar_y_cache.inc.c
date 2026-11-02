@@ -195,8 +195,13 @@ static u32 edad_franja(u32 c0, u32 cols, u32 y, u32 h)
     return edad;
 }
 
+static void tmem_invalidar_vram(void);
+
 void tmem_empezar_frame(void)
 {
+    if (gs_take_lost_uploads()) {
+        tmem_invalidar_vram();
+    }
     if (renglones_atlas == 0) {
         u32 base = gs_vram_texture_start();
         u32 renglones = (gs_vram_texture_end() - base) / (ATLAS_TBW * 8192) * 32; /* filas de paginas enteras */
@@ -474,7 +479,7 @@ static u32 hash_tmem(u32 empezar, u32 largo, u32 h)
 #ifdef SMK64_TMEM_CHECK
     comparar_con_sombra(empezar, largo, "hash");
 #endif
-#ifdef SMK64_PROF
+#if defined(SMK64_PROF) || defined(SMK64_MEDIDOR)
     estadisticas_tmem.hash_bytes += largo > TAMANIO_TMEM ? TAMANIO_TMEM : largo;
 #endif
     empezar &= 0xFFF;
@@ -821,6 +826,26 @@ typedef struct {
 } RanuraCi;
 
 static RanuraCi ci_idx[RANURAS_IDX_CI], ci_clut[RANURAS_CLUT_CI];
+
+/* Hires: a dropped frame's uploads never reached VRAM, so nothing cached there can be trusted */
+static void tmem_invalidar_vram(void)
+{
+    int i;
+
+    for (i = 0; i < TAMANIO_CACHE; i++) {
+        s_cache[i].valido = 0;
+    }
+    for (i = 0; i < CLASSES_ESTANTE; i++) {
+        estante[i].open = 0;
+        estante_pagina[i].open = 0;
+    }
+    for (i = 0; i < RANURAS_IDX_CI; i++) {
+        ci_idx[i].valido = 0;
+    }
+    for (i = 0; i < RANURAS_CLUT_CI; i++) {
+        ci_clut[i].valido = 0;
+    }
+}
 static u32 reloj_ci;
 static u8 ci_buf[64 * 32] __attribute__((aligned(16)));
 static u32 ci_clut_buf[256] __attribute__((aligned(16)));
@@ -881,6 +906,17 @@ static int preparar_ci(const TileRdp *tile, int tlut_modo, int banderas, u32 dec
     }
     ci = ranura_ci(ci_clut, RANURAS_CLUT_CI, clave_pal, clave_pal_2, &nuevo_c);
     if (ci < 0) {
+        return 0;
+    }
+    if (!gs_upload_fits((nuevo_i ? decrementar_w * decrementar_h + 256 : 0) + (nuevo_c ? 1024 + 256 : 0))) {
+        /* hires: this frame's upload budget is spent. Only the slots ranura_ci just freed stay free:
+           a slot that was a hit may already be drawn with this frame and must stay valid. */
+        if (nuevo_i) {
+            ci_idx[ii].valido = 0;
+        }
+        if (nuevo_c) {
+            ci_clut[ci].valido = 0;
+        }
         return 0;
     }
     if (nuevo_i) {

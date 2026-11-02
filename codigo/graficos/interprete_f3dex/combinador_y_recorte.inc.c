@@ -190,7 +190,7 @@ static inline void proyectar_wi(const VerticeRecorte *c, GsVertex *o, float *sn,
     float sy = -yn * St.escala_vp[1] + St.vp_trans[1];
     float zf = __builtin_fminf(__builtin_fmaxf((1.0f - zn) * 0.5f, 0.0f), 1.0f);
 
-    o->x = sx * gs_scale_x;
+    o->x = ws_ortho ? ws_x(sx) : ws_vp_centre + (sx - St.vp_trans[0]) * ws_scale_x;
     o->y = sy * gs_scale_y;
     o->z = (u32) (s32) (zf * 16777000.0f) + (decal ? 1024 : 0); /* zf en [0, 1]: cabe en s32 */
     if (St.valido_tex) {
@@ -595,7 +595,7 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     (void) voltear;
 
     memset(&a, 0, sizeof(a));
-    a.x = ulx * gs_scale_x;
+    a.x = ws_x(ulx);
     a.y = uly * gs_scale_y;
     a.z = 0;
     a.q = 1.0f;
@@ -605,7 +605,7 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
     a.fog = 255;
     b = a;
-    b.x = lrx * gs_scale_x;
+    b.x = ws_x(lrx);
     b.y = lry * gs_scale_y;
     if (St.valido_tex) {
         float mitad = 0.0f;
@@ -688,8 +688,8 @@ static void dibujar_fillrect(u32 w0, u32 w1)
         u32 c = St.color_relleno >> 16;
         u8 r = ((c >> 11) & 0x1F) << 3, g = ((c >> 6) & 0x1F) << 3, b = ((c >> 1) & 0x1F) << 3;
 
-        gs_fill_rect((int) (ulx * GS_WIDTH / 320.0f), (int) (uly * GS_HEIGHT / 240.0f),
-                     (int) (lrx * GS_WIDTH / 320.0f), (int) (lry * GS_HEIGHT / 240.0f), r, g, b);
+        gs_fill_rect((int) ws_x(ulx), (int) (uly * GS_HEIGHT / 240.0f), (int) ws_x(lrx), (int) (lry * GS_HEIGHT / 240.0f), r,
+                     g, b);
     } else {
         /* 1/2 ciclos: color del combinador (fundidos, cajas del HUD). */
         VerticeRsp rv;
@@ -705,7 +705,7 @@ static void dibujar_fillrect(u32 w0, u32 w1)
     rv.r = rv.g = rv.b = rv.a = 0;
         a_vertice_recorte(&rv, &cv);
         memset(&a, 0, sizeof(a));
-        a.x = ulx * gs_scale_x;
+        a.x = ws_x(ulx);
         a.y = uly * gs_scale_y;
         a.q = 1.0f;
         a.r = limitar_u8(cv.r);
@@ -714,7 +714,7 @@ static void dibujar_fillrect(u32 w0, u32 w1)
         a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
         a.fog = 255;
         bb = a;
-        bb.x = lrx * gs_scale_x;
+        bb.x = ws_x(lrx);
         bb.y = lry * gs_scale_y;
         gs_sprite(&a, &bb);
     }

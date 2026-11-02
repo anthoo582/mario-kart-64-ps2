@@ -147,6 +147,7 @@ static void cmd_movemem(u32 w0, u32 w1)
         St.vp_trans[0] = vp->vtrans[0] / 4.0f;
         St.vp_trans[1] = vp->vtrans[1] / 4.0f;
         St.vp_trans[2] = vp->vtrans[2] / 4.0f;
+        ws_viewport();
         St.sucio_estado = 1; /* el scissor de los triangulos depende del viewport */
 #ifdef SMK64_DEV
         if (diag_frame) {

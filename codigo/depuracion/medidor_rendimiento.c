@@ -24,12 +24,13 @@
 #define AUDIO_BYTES_POR_MS 192u
 
 /* Con DEBUG_AUDIO hay una pagina mas */
-enum { PANEL_OCULTO, PANEL_LINEA, PANEL_COMPLETO, PANEL_AUDIO };
+/* PANEL_PERFIL: the hottest code addresses (sampled at 1 kHz), to look up in the ELF's symbols */
+enum { PANEL_OCULTO, PANEL_LINEA, PANEL_COMPLETO, PANEL_PERFIL, PANEL_AUDIO };
 #ifdef SMK64_DEBUG_AUDIO
 #include "depuracion/monitor_audio.h"
 #define PANEL_ULTIMO PANEL_AUDIO
 #else
-#define PANEL_ULTIMO PANEL_COMPLETO
+#define PANEL_ULTIMO PANEL_PERFIL
 #endif
 
 typedef struct {
@@ -129,6 +130,9 @@ void medidor_entrada_mando(u32 pulsados)
         if (modo_panel == PANEL_COMPLETO) {
             reiniciar_pendiente = 1;
         }
+        if (modo_panel == PANEL_PERFIL) {
+            perfil_pantalla_empezar();
+        }
     }
     botones_anteriores = pulsados;
 }
@@ -140,8 +144,19 @@ void medidor_bucle_inactivo(void)
     }
 }
 
+static u32 recortes_inicio; /* prof_calls[RECORTE_PROF] at the start of the window */
+static u32 hash_inicio, decod_inicio; /* texture bytes hashed and textures decoded, same */
+static u32 estado_n_inicio, prep_n_inicio, px_inicio[5];
+extern u32 prof_x[8];
+
 static void empezar_ventana(u32 ahora)
 {
+    recortes_inicio = prof_calls[RECORTE_PROF];
+    hash_inicio = estadisticas_tmem.bytes_firmas + estadisticas_tmem.hash_bytes;
+    decod_inicio = estadisticas_tmem.decodificaciones;
+    estado_n_inicio = prof_calls[ESTADO_PROF];
+    prep_n_inicio = prof_calls[PREPARAR_PROF];
+    memcpy(px_inicio, prof_x, sizeof(px_inicio));
     memset(&ventana, 0, sizeof(ventana));
     ventana.cola_audio_minima = ~0u;
     ventana.vblank_inicio = contador_vblank();
@@ -256,6 +271,9 @@ static void cerrar_ventana(u32 ahora, u32 vblank_ahora)
     fps_promedio = (a->vblanks_totales != 0) ? a->frames_totales * VBLANKS_POR_SEGUNDO_X100 / a->vblanks_totales : fps;
 
     consultar_memoria(&mem);
+    if (modo_panel == PANEL_PERFIL) {
+        return; /* the profile page owns the text */
+    }
     texto_rendimiento = 1;
 
     snprintf(t1, sizeof(t1), "%u.%02u", (unsigned) (fps / 100), (unsigned) (fps % 100));
@@ -295,19 +313,34 @@ static void cerrar_ventana(u32 ahora, u32 vblank_ahora)
              (unsigned) (mem.texturas_bytes / 1024), (unsigned) (mem.texturas_capacidad / 1024));
     texto_escribir_linea(&texto, 5, linea, TEXTO_BLANCO);
 
-    snprintf(linea, sizeof(linea), "LIBRE %uKB POOL %uKB AUD %u/%uKB", (unsigned) (mem.monton_libre / 1024),
-             (unsigned) (mem.pool_juego_libre / 1024), (unsigned) (mem.audio_usado / 1024),
-             (unsigned) (mem.audio_total / 1024));
+    /* State rebuilds and texture lookups per frame; inside the rebuild: combiner analysis, GS state
+       emission, vertex generations (ms per frame) */
+    decimas(t1, sizeof(t1), ciclos_a_decimas_ms(prof_x[0] - px_inicio[0], frames));
+    decimas(t2, sizeof(t2), ciclos_a_decimas_ms(prof_x[3] - px_inicio[3], frames));
+    decimas(t3, sizeof(t3), ciclos_a_decimas_ms(prof_x[4] - px_inicio[4], frames));
+    snprintf(linea, sizeof(linea), "ST %u PR %u CC %s AP %s GEN %s", (unsigned) ((prof_calls[ESTADO_PROF] - estado_n_inicio) / frames),
+             (unsigned) ((prof_calls[PREPARAR_PROF] - prep_n_inicio) / frames), t1, t2, t3);
     texto_escribir_linea(&texto, 6, linea, TEXTO_BLANCO);
 
-    snprintf(linea, sizeof(linea), "AUDIO CORTES %u COLA MIN %u MS", (unsigned) a->cortes_audio, (unsigned) cola_ms);
+    /* TEX split: TMEM loads, cache lookups, decodes (and how many), KB hashed for cache keys */
+    (void) cola_ms;
+    decimas(t1, sizeof(t1), ciclos_a_decimas_ms(ciclos_seccion(CARGA_PROF), frames));
+    decimas(t2, sizeof(t2), ciclos_a_decimas_ms(ciclos_seccion(PREPARAR_PROF), frames));
+    decimas(t3, sizeof(t3), ciclos_a_decimas_ms(ciclos_seccion(DECODIFICACION_PROF), frames));
+    snprintf(linea, sizeof(linea), "LD %s PR %s DEC %s %u HASH %uK", t1, t2, t3,
+             (unsigned) ((estadisticas_tmem.decodificaciones - decod_inicio) / frames),
+             (unsigned) ((estadisticas_tmem.bytes_firmas + estadisticas_tmem.hash_bytes - hash_inicio) / frames / 1024));
     texto_escribir_linea(&texto, 7, linea, a->cortes_audio != 0 ? TEXTO_AMARILLO : TEXTO_BLANCO);
 
     progreso_rom_ps2(&rom_cargados, &rom_total);
     if (gs_hires()) {
         /* Cumulative: late passes mean the GS takes longer than a band to draw a frame */
-        snprintf(linea, sizeof(linea), "HIRES PASS %u LATE %u FLIP %u DROP %u", (unsigned) gs_stats.band_passes,
-                 (unsigned) gs_stats.band_overruns, (unsigned) gs_stats.flips, (unsigned) gs_stats.dropped);
+        u32 d[6];
+
+        gs_hires_diag(d);
+        snprintf(linea, sizeof(linea), "B %u %u %u HS %u R %u A%u L%u C%u", (unsigned) d[0], (unsigned) d[1],
+                 (unsigned) d[2], (unsigned) d[3], (unsigned) d[4], (unsigned) d[5],
+                 (unsigned) gs_stats.band_overruns, (unsigned) gs_stats.dropped);
         texto_escribir_linea(&texto, 8, linea, gs_stats.band_overruns != 0 || gs_stats.dropped != 0 ? TEXTO_AMARILLO : TEXTO_BLANCO);
     } else {
         snprintf(linea, sizeof(linea), "OTROS HILOS %u%%  ROM EN RAM %u%%", (unsigned) pct_otros,
@@ -315,22 +348,18 @@ static void cerrar_ventana(u32 ahora, u32 vblank_ahora)
         texto_escribir_linea(&texto, 8, linea, (rom_total != 0 && rom_cargados < rom_total) ? TEXTO_AMARILLO : TEXTO_BLANCO);
     }
 
-    hay_arranque = summary_tiempos_ps2("arranque", &arranque_us, &paso_largo_arranque, &largo_arranque_us);
-    hay_carga = summary_tiempos_ps2("carga de pista", &carga_us, &paso_largo, &largo_us);
-    ms_o_guion(t1, sizeof(t1), hay_arranque, arranque_us);
-    ms_o_guion(t2, sizeof(t2), hay_carga, carga_us);
-    snprintf(linea, sizeof(linea), "ARRANQUE %s MS  CARGA PISTA %s MS", t1, t2);
+    /* Inside TRI: per-vertex colour combiner, CPU clipping (and clipped triangles per frame), GS
+       packet writing. Then the game thread's logic and the audio thread's sequencing. */
+    decimas(t1, sizeof(t1), ciclos_a_decimas_ms(ciclos_seccion(COMBINACION_PROF), frames));
+    decimas(t2, sizeof(t2), ciclos_a_decimas_ms(ciclos_seccion(RECORTE_PROF), frames));
+    decimas(t3, sizeof(t3), ciclos_a_decimas_ms(ciclos_seccion(EMITIR_PROF), frames));
+    snprintf(linea, sizeof(linea), "COMB %s CLIP %s (%u/F) EMIT %s", t1, t2,
+             (unsigned) ((prof_calls[RECORTE_PROF] - recortes_inicio) / frames), t3);
     texto_escribir_linea(&texto, 9, linea, TEXTO_BLANCO);
-
-    if (!hay_carga) {
-        paso_largo = hay_arranque ? paso_largo_arranque : NULL;
-        largo_us = largo_arranque_us;
-    }
-    if (paso_largo != NULL) {
-        snprintf(linea, sizeof(linea), "MAX %u MS %s", (unsigned) ((largo_us + 500) / 1000), paso_largo);
-    } else {
-        snprintf(linea, sizeof(linea), "MAX -");
-    }
+    decimas(t1, sizeof(t1), ciclos_a_decimas_ms(ciclos_seccion(JUEGO_PROF), frames));
+    decimas(t2, sizeof(t2), ciclos_a_decimas_ms(ciclos_seccion(PROF_AUDIOGAME), frames));
+    decimas(t3, sizeof(t3), ciclos_a_decimas_ms(ciclos_seccion(PROF_DL), frames));
+    snprintf(linea, sizeof(linea), "JUEGO %s AUDJ %s DL %s", t1, t2, t3);
     texto_escribir_linea(&texto, 10, linea, TEXTO_BLANCO);
 
     {
@@ -437,6 +466,29 @@ void medidor_dibujar(void)
         return;
     }
 #endif
+    if (modo_panel == PANEL_PERFIL) {
+        /* Rewritten once a second; cumulative since the page was opened */
+        static u32 cuenta;
+
+        if (++cuenta >= 30) {
+            u32 dir[MEDIDOR_LINEAS - 1], n[MEDIDOR_LINEAS - 1], total, kernel;
+            char linea[48];
+            int i, k = perfil_pantalla_top(dir, n, MEDIDOR_LINEAS - 1, &total, &kernel);
+
+            cuenta = 0;
+            texto_limpiar(&texto);
+            snprintf(linea, sizeof(linea), "PERFIL %u MUESTRAS KERNEL %u%%", (unsigned) total,
+                     (unsigned) (total ? kernel * 100 / total : 0));
+            texto_escribir_linea(&texto, 0, linea, TEXTO_AMARILLO);
+            for (i = 0; i < k; i++) {
+                snprintf(linea, sizeof(linea), "%06X %3u.%u%%", (unsigned) dir[i], (unsigned) (n[i] * 100 / total),
+                         (unsigned) (n[i] * 1000 / total % 10));
+                texto_escribir_linea(&texto, i + 1, linea, TEXTO_BLANCO);
+            }
+        }
+        texto_dibujar(&texto, 16.0f, 16.0f, MEDIDOR_LINEAS);
+        return;
+    }
     texto_dibujar(&texto, 16.0f, 16.0f, modo_panel == PANEL_COMPLETO ? MEDIDOR_LINEAS : 1);
 }
 
