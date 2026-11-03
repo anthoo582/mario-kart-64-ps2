@@ -123,6 +123,9 @@ int gs_set_video_mode(int mode)
    with FBP = band_base, a Z-buffer written as colour (gs_clear_z) with any other FBP. */
 #define HIRES_BANDS     3
 #define MAX_BAND_FIXUPS 2048 /* ZBUF/SCISSOR are only written when they change: a race frame needs ~12 */
+/* Fixup reg for a SCISSOR_1 kept as written in one band's pass (BAND_ONLY_SCISSOR + band) and
+   empty in the others: giant screen copies read each band right after its own pass */
+#define BAND_ONLY_SCISSOR 0x100u
 
 typedef struct {
     u32 off;   /* qword offset in the packet */
@@ -391,16 +394,22 @@ u32 gs_vram_texture_start(void)
 }
 #endif
 
+#ifdef SMK64_DEV
+/* Hires: one strip of CT32 for gs_hires_capture at the end of VRAM */
+static u32 vram_capture_strip(void)
+{
+    return 4 * 1024 * 1024 - (u32) (GS_WIDTH / 64) * 8192;
+}
+#endif
+
+/* The giant screen slots go right after the textures */
 u32 gs_vram_texture_end(void)
 {
-    if (hires) {
-        /* No giant screen copies in hires. DEV: one strip of CT32 for gs_hires_capture. */
 #ifdef SMK64_DEV
-        return 4 * 1024 * 1024 - (u32) (GS_WIDTH / 64) * 8192;
-#else
-        return 4 * 1024 * 1024;
-#endif
+    if (hires) {
+        return vram_capture_strip() - BYTES_VRAM_PANTALLAS_GIGANTES;
     }
+#endif
     return 4 * 1024 * 1024 - BYTES_VRAM_PANTALLAS_GIGANTES;
 }
 
@@ -546,6 +555,11 @@ static void patch_band(int slot, int band)
     for (i = band_num_fixups[slot]; i > 0; i--, f++) {
         u64 v = f->value;
 
+        if (f->reg >= BAND_ONLY_SCISSOR) {
+            if (f->reg - BAND_ONLY_SCISSOR != (u32) band) {
+                v = GS_SETREG_SCISSOR(1, 0, 1, 0);
+            }
+        }
         switch (f->reg) {
             case GSR_FRAME_1:
                 v = (v & ~0x1FFULL) | (((v & 0x1FF) == band_base) ? fbp : zbp);
@@ -1062,8 +1076,9 @@ static void hires_check_packet(int slot, const Qword *end)
     }
     for (i = 0; i < band_num_fixups[slot]; i++) {
         const BandFixup *f = &band_fixups[slot][i];
+        u32 reg = f->reg >= BAND_ONLY_SCISSOR ? GSR_SCISSOR_1 : f->reg;
 
-        if (f->off >= (u32) (end - start) || start[f->off].d[1] != f->reg || start[f->off].d[0] != f->value) {
+        if (f->off >= (u32) (end - start) || start[f->off].d[1] != reg || start[f->off].d[0] != f->value) {
             registrar("GS: bad band fixup %d/%d: off %u reg %x, packet has reg %x (%u qwords)", i,
                     band_num_fixups[slot], (unsigned) f->off, (unsigned) f->reg,
                     f->off < (u32) (end - start) ? (unsigned) start[f->off].d[1] : 0u, (unsigned) (end - start));
@@ -1461,6 +1476,73 @@ void gs_clear_z(void)
     ad_band(GSR_FRAME_1, frame_reg(draw_buffer));
 }
 
+/* First destination row whose source line (row centre) is at or below screen line `line` */
+static int copy_row_at(int line, float y, float h, int dh)
+{
+    float r = ((float) line - y) * (float) dh / h - 0.5f;
+    int ri = (int) r;
+
+    ri += (float) ri < r ? 1 : 0; /* ceil */
+    return ri < 0 ? 0 : ri > dh ? dh : ri;
+}
+
+/* Hires: there is never a complete frame in VRAM (each band is the next pass's Z-buffer), but
+   band b is complete right after its own pass. Called at the end of the packet, which every pass
+   replays: one copy per band, each enabled only in its own band's pass (BAND_ONLY_SCISSOR) and
+   writing only the destination rows whose source lines are in that band. The region clamp keeps
+   filtering inside the band, whose neighbour holds Z at that moment. */
+static int copy_from_bands(float x, float y, float w, float h, u32 dst_vram, int dw, int dh)
+{
+    Qword *tag;
+    /* Texture origin at the page holding the top-left corner: TW tops out at 1024 texels */
+    int px = (int) x / 64, py = (int) y / 64;
+    u32 tbp = (band_base + (u32) (py * (GS_WIDTH / 64) + px)) * 32;
+    float lx = x - (float) (px * 64), ly = y - (float) (py * 64);
+    int x0 = (int) lx, x1 = (int) (lx + w) - 1;
+    int band;
+
+    band_room(HIRES_BANDS + 3);
+    begin_ad(&tag, 8 + 8 * HIRES_BANDS + 4);
+    ad(GSR_TEXFLUSH, 0); /* the source was just drawn */
+    ad(GSR_FRAME_1, GS_SETREG_FRAME(dst_vram / 8192, 1, GS_PSM_CT32, 0));
+    ad(GSR_ZBUF_1, gs_zbuf_value(0));
+    ad(GSR_TEST_1, GS_SETREG_TEST(0, 0, 0, 0, 0, 0, 1, 1));
+    ad(GSR_XYOFFSET_1, GS_SETREG_XYOFFSET(XYOFFSET_X << 4, XYOFFSET_Y << 4)); /* not per band */
+    ad(GSR_ALPHA_1, GS_SETREG_ALPHA(0, 1, 0, 1, 0));
+    ad(GSR_TEX0_1, GS_SETREG_TEX0(tbp, GS_WIDTH / 64, s_gs->PSM, 10, 10, 0, 1, 0, 0, 0, 0, 0));
+    ad(GSR_TEX1_1, GS_SETREG_TEX1(1, 0, 1, 1, 0, 0, 0));
+    for (band = 0; band < HIRES_BANDS; band++) {
+        int line0 = band * band_h, line1 = line0 + band_h;
+        int r0 = copy_row_at(line0, y, h, dh), r1 = copy_row_at(line1, y, h, dh);
+        int v0 = (line0 > (int) y ? line0 : (int) y) - py * 64;
+        int v1 = (line1 < (int) (y + h) ? line1 : (int) (y + h)) - 1 - py * 64;
+        u64 scissor = r0 < r1 ? GS_SETREG_SCISSOR(0, dw - 1, r0, r1 - 1) : GS_SETREG_SCISSOR(1, 0, 1, 0);
+
+        v1 = v1 < v0 ? v0 : v1;
+        ad(GSR_CLAMP_1, GS_SETREG_CLAMP(2, 2, x0, x1, v0, v1));
+        if (!sinking) {
+            BandFixup *f = &band_fixups[build_slot][band_num_fixups[build_slot]++];
+
+            f->off = (u32) (cur - s_pkt);
+            f->reg = BAND_ONLY_SCISSOR + (u32) band;
+            f->value = scissor;
+        }
+        ad(GSR_SCISSOR_1, scissor);
+        ad(GSR_PRIM, 6 | (1 << 4) | (1 << 8)); /* sprite, textured, UV coordinates */
+        ad(GSR_RGBAQ, 0x80808080ULL);
+        ad(GSR_UV, (u64) (lx * 16.0f) | ((u64) (ly * 16.0f) << 16));
+        ad(GSR_XYZ2, (u64) (XYOFFSET_X << 4) | ((u64) (XYOFFSET_Y << 4) << 16));
+        ad(GSR_UV, (u64) ((lx + w) * 16.0f) | ((u64) ((ly + h) * 16.0f) << 16));
+        ad(GSR_XYZ2, (u64) ((XYOFFSET_X + dw) << 4) | ((u64) ((XYOFFSET_Y + dh) << 4) << 16));
+    }
+    ad(GSR_TEXFLUSH, 0); /* the slot is sampled by the next pass */
+    ad_band(GSR_FRAME_1, frame_reg(draw_buffer));
+    ad_band(GSR_XYOFFSET_1, GS_SETREG_XYOFFSET(XYOFFSET_X << 4, XYOFFSET_Y << 4));
+    ad_band(GSR_SCISSOR_1, GS_SETREG_SCISSOR(0, GS_WIDTH - 1, 0, GS_HEIGHT - 1));
+    state_valid = 0;
+    return !sinking;
+}
+
 int gs_copy_from_screen(float x, float y, float w, float h, u32 dst_vram, int dw, int dh)
 {
     Qword *tag;
@@ -1472,7 +1554,7 @@ int gs_copy_from_screen(float x, float y, float w, float h, u32 dst_vram, int dw
     } s0, t0, s1, t1, q;
 
     if (hires) {
-        return 0; /* no complete previous frame: its bands are redrawn and reused as Z every pass */
+        return copy_from_bands(x, y, w, h, dst_vram, dw, dh);
     }
 
     flush_prims();
@@ -1551,7 +1633,7 @@ static void capture_strip(int band, int row, int n)
 {
     static Qword pkt[24] __attribute__((aligned(64)));
     Qword *q = pkt + 1;
-    u32 scratch = gs_vram_texture_end();
+    u32 scratch = vram_capture_strip();
     int chunks = (GS_WIDTH + 1023) / 1024, c;
 
 #define AD_CAP(r, v) (q->d[0] = (v), q->d[1] = (r), q++)
@@ -1625,7 +1707,7 @@ int gs_hires_capture(const char *path)
             int n = lines - row > CAPTURE_LINES ? CAPTURE_LINES : lines - row, y, i;
 
             capture_strip(band, row, n);
-            ps2_screenshot(shot_buf, gs_vram_texture_end() / 256, 0, 0, GS_WIDTH, n, GS_PSM_CT32);
+            ps2_screenshot(shot_buf, vram_capture_strip() / 256, 0, 0, GS_WIDTH, n, GS_PSM_CT32);
             FlushCache(0);
             for (y = 0; y < n; y++) {
                 const u32 *src = px + y * GS_WIDTH;

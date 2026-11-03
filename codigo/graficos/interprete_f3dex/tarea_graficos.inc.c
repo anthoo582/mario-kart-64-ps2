@@ -87,6 +87,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_DEV
     diag_frame = 0;
 #endif
+    terminar_frame_pantallas_gigantes();
 #ifdef SMK64_DEV
     if (dl_volcado != NULL) {
         char nombre[32];

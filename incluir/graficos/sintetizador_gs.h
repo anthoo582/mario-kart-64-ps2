@@ -4,8 +4,8 @@
 #include <tamtypes.h>
 
 /* Video modes, same table as mk64-dc's gfx_ps2_wapi.c. 720p and 1080i use banded multi-pass
-   rendering (the gsHires technique, see sintetizador_gs.c): no 60 FPS interpolation and no live
-   giant screens in those modes. */
+   rendering (the gsHires technique, see sintetizador_gs.c): no 60 FPS interpolation in those
+   modes, and giant screens are copied at the end of the frame rather than the start. */
 enum {
     GS_VIDEO_240P,
     GS_VIDEO_480I, /* 576i in PAL builds */
@@ -17,7 +17,7 @@ enum {
 
 /* Mode used at boot: make EXTRA_DEFINES=-DGS_VIDEO_MODE=GS_VIDEO_480P */
 #ifndef GS_VIDEO_MODE
-#define GS_VIDEO_MODE GS_VIDEO_480P
+#define GS_VIDEO_MODE GS_VIDEO_1080I
 #endif
 
 /* Only before gs_init: the VRAM layout (framebuffers, texture atlas) is fixed after that.
@@ -125,7 +125,9 @@ int gs_hires_capture(const char *path);
 void gs_hires_log_status(void);
 #endif
 
-/* Returns 0 when the screen cannot be read back (hires: the bands are reused every pass) */
+/* Copies a screen area into a CT32 texture. Normally reads the previous frame, so it goes at the
+   start of the frame; in hires it reads each band after its pass, so it goes at the end.
+   Returns 0 when the copy will not happen (hires: the frame was cut short). */
 int gs_copy_from_screen(float x, float y, float w, float h, u32 dst_vram, int dw, int dh);
 
 void gs_upload_texture(u32 tbp, u32 tbw, const u32 *pixels, u32 w, u32 h);
