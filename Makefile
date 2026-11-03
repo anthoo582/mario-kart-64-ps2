@@ -155,7 +155,7 @@ PS2_SRC := \
   codigo/audio/salida_audio.c codigo/audio/microcodigo_audio.c codigo/depuracion/depuracion_audio.c \
   codigo/depuracion/monitor_audio.c codigo/depuracion/guiones_prueba.c codigo/graficos/combinador_color.c \
   codigo/depuracion/depuracion.c codigo/sistema/descompresion.c codigo/graficos/interprete_f3dex.c \
-  codigo/graficos/sintetizador_gs.c codigo/entrada/mandos.c codigo/entrada/multitap.c codigo/sistema/arranque_ps2.c \
+  codigo/graficos/sintetizador_gs.c codigo/entrada/mandos.c codigo/entrada/multitap.c codigo/entrada/vibracion.c codigo/sistema/arranque_ps2.c \
   codigo/sistema/memory_card.c codigo/sistema/hardware.c codigo/sistema/hilos.c \
   codigo/sistema/retrazo_vertical.c codigo/sistema/ritmo_fisica.c codigo/sistema/carga_rom.c \
   codigo/sistema/tareas_rsp.c codigo/depuracion/muestreo_cpu.c codigo/sistema/guardado_ps2.c \

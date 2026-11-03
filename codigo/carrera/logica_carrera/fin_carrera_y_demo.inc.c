@@ -242,6 +242,8 @@ void funcion_802903D8(Jugador* jugador_uno_2, Jugador* jugador_dos_2) {
     if (sp74 > 0) {
         return;
     }
+    vibracion_choque_jugador(jugador_uno_2);
+    vibracion_choque_jugador(jugador_dos_2);
 
     if (jugador_uno_2->type & jugador_desconocido_0_x40) {
         if (jugador_dos_2->type & jugador_desconocido_0_x40) {

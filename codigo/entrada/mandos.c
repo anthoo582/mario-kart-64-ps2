@@ -9,18 +9,22 @@
 
 #include "sistema/sistema_ps2.h"
 #include "entrada/multitap.h"
+#include "entrada/vibracion.h"
 #include "graficos/interprete_f3dex.h"
 #include "depuracion/guiones_prueba.h"
 #ifdef SMK64_MEDIDOR
 #include "depuracion/medidor_rendimiento.h"
 #endif
 
-enum { PUERTO_CERRADO, ESTABLE_ESPERA_PUERTO, MODO_ESPERA_PUERTO, LISTO_PUERTO };
+enum { PUERTO_CERRADO, ESTABLE_ESPERA_PUERTO, MODO_ESPERA_PUERTO, MOTORES_ESPERA_PUERTO, LISTO_PUERTO };
 
 /* Un buffer de 256 bytes por conector (puerto y ranura del multitap), alineado a 64 para XPADMAN */
 static char buffer_relleno[PUERTOS_MANDO_PS2][RANURAS_MULTITAP][256] __attribute__((aligned(64)));
 static u8 estado_conector[PUERTOS_MANDO_PS2][RANURAS_MULTITAP];
 static u8 intentos_modo[PUERTOS_MANDO_PS2][RANURAS_MULTITAP];
+static u8 tiene_motores[PUERTOS_MANDO_PS2][RANURAS_MULTITAP];
+/* Ultimo valor enviado a los motores (pequeno, grande), para no repetir la llamada cada frame */
+static u8 motores_enviados[PUERTOS_MANDO_PS2][RANURAS_MULTITAP][2];
 static OSContPad s_rellenos[MAXCONTROLLERS];
 static int rellenos_inicializado;
 static int padman_ok;
@@ -137,6 +141,23 @@ void inicializar_mandos_ps2(void)
     inicializar_guiones_prueba();
 }
 
+/* Motor pequeno en el actuador 0 y grande en el 1 (DualShock). Pasa a MOTORES_ESPERA_PUERTO o a LISTO_PUERTO. */
+static void preparar_motores(int puerto, int ranura)
+{
+    static const char alineacion[6] = { 0, 1, 0xff, 0xff, 0xff, 0xff };
+    u8 *estado_c = &estado_conector[puerto][ranura];
+
+    tiene_motores[puerto][ranura] = 0;
+    motores_enviados[puerto][ranura][0] = 0;
+    motores_enviados[puerto][ranura][1] = 0;
+    if (padInfoAct(puerto, ranura, -1, 0) != 0 && padSetActAlign(puerto, ranura, alineacion) == 1) {
+        *estado_c = MOTORES_ESPERA_PUERTO;
+        intentos_modo[puerto][ranura] = 0;
+        return;
+    }
+    *estado_c = LISTO_PUERTO;
+}
+
 /* Lee un conector. Devuelve 1 y deja los botones crudos (activos a 1) si hay un mando listo. */
 static int sondear_conector(int puerto, int ranura, OSContPad *salida, u32 *crudos)
 {
@@ -156,6 +177,7 @@ static int sondear_conector(int puerto, int ranura, OSContPad *salida, u32 *crud
     estado = padGetState(puerto, ranura);
     if (estado == PAD_STATE_DISCONN) {
         *estado_c = ESTABLE_ESPERA_PUERTO;
+        tiene_motores[puerto][ranura] = 0;
         return 0;
     }
     if (estado != PAD_STATE_STABLE && estado != PAD_STATE_FINDCTP1) {
@@ -170,9 +192,16 @@ static int sondear_conector(int puerto, int ranura, OSContPad *salida, u32 *crud
             intentos_modo[puerto][ranura] = 0;
             return 0;
         }
-        *estado_c = LISTO_PUERTO;
+        preparar_motores(puerto, ranura);
+        return 0;
     } else if (*estado_c == MODO_ESPERA_PUERTO) {
         if (padGetReqState(puerto, ranura) != PAD_RSTAT_BUSY || ++intentos_modo[puerto][ranura] > 120) {
+            preparar_motores(puerto, ranura);
+        }
+        return 0;
+    } else if (*estado_c == MOTORES_ESPERA_PUERTO) {
+        if (padGetReqState(puerto, ranura) != PAD_RSTAT_BUSY || ++intentos_modo[puerto][ranura] > 120) {
+            tiene_motores[puerto][ranura] = padGetReqState(puerto, ranura) != PAD_RSTAT_FAILED;
             *estado_c = LISTO_PUERTO;
         }
         return 0;
@@ -216,9 +245,29 @@ static void registrar_conectores(void)
 }
 #endif
 
+/* Solo llama a padSetActDirect cuando cambia algo: cada llamada es una peticion al IOP. */
+static void mover_motores(int puerto, int ranura, u8 pequeno, u8 grande)
+{
+    char accion[6] = { 0, 0, 0, 0, 0, 0 };
+    u8 *enviados = motores_enviados[puerto][ranura];
+
+    if (!tiene_motores[puerto][ranura] || estado_conector[puerto][ranura] != LISTO_PUERTO ||
+        (enviados[0] == pequeno && enviados[1] == grande)) {
+        return;
+    }
+    accion[0] = (char) pequeno;
+    accion[1] = (char) grande;
+    if (padSetActDirect(puerto, ranura, accion) == 1) {
+        enviados[0] = pequeno;
+        enviados[1] = grande;
+    }
+}
+
 void leer_mandos_ps2(void)
 {
     int jugador;
+    u8 vib_pequeno[MAXCONTROLLERS];
+    u8 vib_grande[MAXCONTROLLERS];
 
     if (padman_ok && vigilar_multitap_ps2()) {
         abrir_conectores();
@@ -228,6 +277,7 @@ void leer_mandos_ps2(void)
         registrar_conectores();
     }
 #endif
+    calcular_vibracion(vib_pequeno, vib_grande);
     for (jugador = 0; jugador < MAXCONTROLLERS; jugador++) {
         int puerto, ranura;
         u32 crudos = 0;
@@ -237,6 +287,9 @@ void leer_mandos_ps2(void)
             memset(&s_rellenos[jugador], 0, sizeof(OSContPad));
             s_rellenos[jugador].errno = CONT_NO_RESPONSE_ERROR;
             continue;
+        }
+        if (padman_ok) {
+            mover_motores(puerto, ranura, vib_pequeno[jugador], vib_grande[jugador]);
         }
         if (jugador == 0) {
             /* R3 solo (sin L3, que con R3 es el medidor): 60 FPS si/no. */
