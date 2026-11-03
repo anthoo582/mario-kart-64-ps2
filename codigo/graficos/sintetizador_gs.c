@@ -33,7 +33,8 @@ typedef union {
 
 static Qword packets[PACKET_SLOTS][PACKET_QWORDS] __attribute__((aligned(64)));
 
-/* Upload capture for the 60 FPS frame; in hires (no 60 FPS) the sink for a frame that is cut short */
+/* Upload capture for the 60 FPS frame; in hires also the sink for a frame that is cut short (which
+   then gets no interpolated frame) */
 #define CAPTURE_QWORDS (32 * 1024)
 static Qword capture_buf[CAPTURE_QWORDS] __attribute__((aligned(64)));
 static int sinking; /* hires: the packet is full; the rest of the frame goes to capture_buf, unsent */
@@ -289,10 +290,16 @@ static inline void ad_band(u32 reg, u64 value)
    band replays all of it. It is shown cut short at this point, and the rest of the frame is
    written into capture_buf and never sent. Dropping the whole frame instead would show nothing
    at all when every frame is too big. */
+static void capture_lost(void);
+
 static void hires_sink(void)
 {
     flush_prims();
     packet_info[cur_packet].end = cur;
+    if (cur_packet == GS_PACKET_INTERP) {
+        packet_info[cur_packet].overflow = 1; /* not shown cut short: the real frame follows it */
+    }
+    capture_lost(); /* the sink writes over the captured uploads */
     sinking = 1;
     s_pkt = cur = capture_buf;
     gs_stats.dropped++;
@@ -957,11 +964,18 @@ void gs_begin_packet(int packet, int buffer, int flags)
     Qword *tag;
 
     if (hires) {
-        int s;
+        /* The interpolated frame is built after the real one, which is not presented yet */
+        int s, avoid = packet == GS_PACKET_INTERP ? packet_slot[GS_PACKET_REAL] : -1, next = hires_next;
 
         /* Any slot that is neither on screen nor waiting to be: with a dropped frame nothing
            would free the slot a strict alternation waits for */
-        for (s = 0; s < PACKET_SLOTS && (slot_busy & (1u << s)); s++) {
+        for (s = 0; s < PACKET_SLOTS && ((slot_busy & (1u << s)) || s == avoid); s++) {
+        }
+        if (s == PACKET_SLOTS) {
+            /* The one on screen, freed once the waiting one is shown. Never the waiting one: only
+               presenting this packet would free it. */
+            for (s = 0; s < PACKET_SLOTS && (s == avoid || s == next); s++) {
+            }
         }
         packet_slot[packet] = s < PACKET_SLOTS ? s : 0;
         flags |= GS_PACKET_NO_PARTIAL; /* the whole packet is replayed for every band */
@@ -1180,6 +1194,14 @@ int gs_capture_failed(void)
     return capture_overflow;
 }
 
+static void capture_lost(void)
+{
+    if (capturing) {
+        capture_overflow = 1;
+        capturing = 0;
+    }
+}
+
 static void capture_append(const Qword *from, u32 qwc)
 {
     if (!capturing) {
@@ -1198,7 +1220,7 @@ void gs_emit_captured_uploads(void)
     u32 done = 0;
 
     flush_prims();
-    while (done < capture_len) {
+    while (done < capture_len && !sinking) { /* hires: the sink is capture_buf itself */
         u32 n = capture_len - done;
         u32 room = PACKET_QWORDS - (u32) (cur - s_pkt) - 16;
 

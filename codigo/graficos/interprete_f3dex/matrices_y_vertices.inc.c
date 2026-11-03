@@ -753,6 +753,9 @@ static void construir_estado(int tile, int es_rect)
             periodo_t_reb = r->reb[1];
             reb_inv_s = r->reb[2];
             reb_inv_t = r->reb[3];
+            /* Not in the recorded state: otherwise widescreen keeps the projection type the real
+               frame ended on (the HUD's orthographic one) and draws the 3D stretched */
+            ws_update();
             gs_apply_state(&St.gs);
             St.sucio_estado = es_rect;
             if (r->inc_cc && ++gen_cc == 0) {

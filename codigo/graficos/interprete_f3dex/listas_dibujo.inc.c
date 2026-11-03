@@ -482,8 +482,14 @@ static void cancelar_gancho_interp(void)
 #define CICLOS_FRAME         (294912u * 100u / 3u)
 /* Margenes amplios: en una PS2 real el costo de un frame varia mas que en el emulador y un
    intermedio que no entra atrasa la imagen real un retrazo entero (un tiron visible). */
-#define MARGEN_INTERP_EN     (294912u * 8u)
-#define APAGADO_MARGEN_INTERP    (294912u * 6u)
+#ifndef MARGEN_INTERP_EN_MS
+#define MARGEN_INTERP_EN_MS 8
+#endif
+#ifndef APAGADO_MARGEN_INTERP_MS
+#define APAGADO_MARGEN_INTERP_MS 6
+#endif
+#define MARGEN_INTERP_EN     (294912u * MARGEN_INTERP_EN_MS)
+#define APAGADO_MARGEN_INTERP    (294912u * APAGADO_MARGEN_INTERP_MS)
 static u32 apagado_libre, libre_en; /* ciclos libres por frame, sin y con intermedio */
 static u32 proporcion_interp = 176;
 static u32 samp_total, inactivo_samp;
@@ -512,7 +518,7 @@ static void liberar_measure(int interp_usado)
 
 static int candidato_interp(void)
 {
-    return interp_user && estado_juego == 4 && juego_en_pausa == 0 && !gs_hires(); /* hires: 30 FPS */
+    return interp_user && estado_juego == 4 && juego_en_pausa == 0;
 }
 
 /* Tras apagar el intermedio por falta de tiempo, tareas a 30 FPS antes de volver a probar:

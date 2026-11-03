@@ -4,8 +4,8 @@
 #include <tamtypes.h>
 
 /* Video modes, same table as mk64-dc's gfx_ps2_wapi.c. 720p and 1080i use banded multi-pass
-   rendering (the gsHires technique, see sintetizador_gs.c): no 60 FPS interpolation in those
-   modes, and giant screens are copied at the end of the frame rather than the start. */
+   rendering (the gsHires technique, see sintetizador_gs.c): giant screens are copied at the end
+   of the frame rather than the start in those modes. */
 enum {
     GS_VIDEO_240P,
     GS_VIDEO_480I, /* 576i in PAL builds */
