@@ -282,9 +282,9 @@ static void ejecutar_dl(Gfx *dl)
                 float sy = gs_scale_y;
                 int viejo[4] = { St.tijera[0], St.tijera[1], St.tijera[2], St.tijera[3] };
 
-                St.tijera[0] = (int) ws_x(((w0 >> 12) & 0xFFF) * 0.25f);
+                St.tijera[0] = (int) ws_x_caja(((w0 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[1] = (int) ((w0 & 0xFFF) * 0.25f * sy);
-                St.tijera[2] = (int) ws_x(((w1 >> 12) & 0xFFF) * 0.25f);
+                St.tijera[2] = (int) ws_x_caja(((w1 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[3] = (int) ((w1 & 0xFFF) * 0.25f * sy);
                 if (St.tijera[2] > GS_WIDTH) St.tijera[2] = GS_WIDTH;
                 if (St.tijera[3] > GS_HEIGHT) St.tijera[3] = GS_HEIGHT;

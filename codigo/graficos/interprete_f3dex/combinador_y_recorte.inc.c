@@ -190,7 +190,7 @@ static inline void proyectar_wi(const VerticeRecorte *c, GsVertex *o, float *sn,
     float sy = -yn * St.escala_vp[1] + St.vp_trans[1];
     float zf = __builtin_fminf(__builtin_fmaxf((1.0f - zn) * 0.5f, 0.0f), 1.0f);
 
-    o->x = ws_ortho ? ws_x(sx) : ws_vp_centre + (sx - St.vp_trans[0]) * ws_scale_x;
+    o->x = ws_ortho ? ws_x_orto(sx) : ws_vp_centre + (sx - St.vp_trans[0]) * ws_scale_x;
     o->y = sy * gs_scale_y;
     o->z = (u32) (s32) (zf * 16777000.0f) + (decal ? 1024 : 0); /* zf en [0, 1]: cabe en s32 */
     if (St.valido_tex) {

@@ -92,6 +92,7 @@ static int ws_ortho;            /* the projection matrix is orthographic */
 static float ws_vp_centre;      /* GS x of the viewport centre (3D) */
 static float ws_vp_half;        /* GS half-width of the viewport, edges kept on the screen edges */
 static float ws_ndc_x = 1.0f;   /* that half-width in viewport half-widths at ws_scale_x (Hor+: 4/3) */
+static float ws_vp_izq, ws_vp_der; /* N64 x of the viewport edges */
 
 /* N64 screen x -> GS x for 2D */
 static inline float ws_x(float sx)
@@ -106,6 +107,15 @@ static inline float ws_x(float sx)
         return GS_WIDTH + (sx - 320.0f) * ws_scale_x;
     }
     return GS_WIDTH * 0.5f + (sx - 160.0f) * ws_scale_x;
+}
+
+/* N64 screen x -> GS x for viewport and scissor boxes: stretched to the full width. At rest they
+   touch the edges or split the screen in the centre, where this matches ws_x; while the game
+   animates them (race start zoom, winner and split-screen transitions) ws_x would keep them inside
+   the 4:3 part and jump to the edges on the last frame. */
+static inline float ws_x_caja(float sx)
+{
+    return sx * gs_scale_x;
 }
 
 
@@ -528,8 +538,10 @@ static int alfa_dither;
 static void ws_viewport(void)
 {
     float hw = St.escala_vp[0] < 0 ? -St.escala_vp[0] : St.escala_vp[0];
-    float l = ws_x(St.vp_trans[0] - hw), r = ws_x(St.vp_trans[0] + hw);
+    float l = ws_x_caja(St.vp_trans[0] - hw), r = ws_x_caja(St.vp_trans[0] + hw);
 
+    ws_vp_izq = St.vp_trans[0] - hw;
+    ws_vp_der = St.vp_trans[0] + hw;
     ws_vp_centre = (l + r) * 0.5f;
     ws_vp_half = (r - l) * 0.5f;
     ws_ndc_x = hw > 0.0f ? ws_vp_half / (hw * ws_scale_x) : 1.0f;
@@ -547,6 +559,24 @@ static void ws_viewport(void)
         guardia_x = izq < guardia_x ? izq : guardia_x;
         guardia_x = guardia_x < ws_ndc_x ? ws_ndc_x : guardia_x;
     }
+}
+
+/* N64 screen x -> GS x for orthographic vertices: like ws_x, but what is on the viewport edges
+   stays on the edges of its box (ws_x_caja). The sky is a quad that fills the viewport: while the
+   viewport is animated it has to fill the same box as the scissor and the 3D. With full-screen and
+   split-screen viewports the edges are 0, 160 and 320, where this matches ws_x. */
+static inline float ws_x_orto(float sx)
+{
+    if (ws_widen == 1.0f) {
+        return sx * gs_scale_x;
+    }
+    if (sx - ws_vp_izq <= 0.5f && sx - ws_vp_izq >= -0.5f) {
+        return ws_vp_centre - ws_vp_half + (sx - ws_vp_izq) * ws_scale_x;
+    }
+    if (sx - ws_vp_der <= 0.5f && sx - ws_vp_der >= -0.5f) {
+        return ws_vp_centre + ws_vp_half + (sx - ws_vp_der) * ws_scale_x;
+    }
+    return ws_x(sx);
 }
 
 /* Projection type and viewport extent, before a draw */
@@ -572,8 +602,8 @@ static u64 tri_reg_tijera(void)
     int y0 = (int) ((St.vp_trans[1] - hh) * sy + 0.5f), y1 = (int) ((St.vp_trans[1] + hh) * sy + 0.5f);
 
     if (ws_ortho) {
-        x0 = (int) (ws_x(St.vp_trans[0] - hw) + 0.5f);
-        x1 = (int) (ws_x(St.vp_trans[0] + hw) + 0.5f);
+        x0 = (int) (ws_x_caja(St.vp_trans[0] - hw) + 0.5f);
+        x1 = (int) (ws_x_caja(St.vp_trans[0] + hw) + 0.5f);
     } else {
         /* Hor+: the clip ratio applies to the full-width viewport, not to the 4:3 part */
         x0 = (int) (ws_vp_centre - ws_vp_half * St.proporcion_recorte + 0.5f);
