@@ -184,7 +184,7 @@ u32 mapa_sig[512];
 
 static u32 cargar_hash_sig(const u64 *orig_, u32 palabras, u32 acc0, u32 dxt)
 {
-#ifdef SMK64_PROF
+#if defined(SMK64_PROF) || defined(SMK64_MEDIDOR)
     estadisticas_tmem.bytes_firmas += palabras * 8;
 #endif
 #ifdef SMK64_SIGMAP

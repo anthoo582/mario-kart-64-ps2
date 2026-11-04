@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_sherbet_land_vertice
-.incbin "build/ps2/recursos/pistas/sherbet_land/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_sherbet_land_empaquetado
-.incbin "build/ps2/recursos/pistas/sherbet_land/listas_empaquetadas.inc.bin"
-.balign 0x10

@@ -68,6 +68,9 @@ static int preparar_impl_tmem(int indice_tile, int tlut_modo, int banderas, Info
         }
     }
     ranura = (k0 * 31 + k1) & (TAMANIO_CACHE - 1);
+    if (!gs_upload_fits(((decrementar_w + 3) & ~3u) * decrementar_h * 4)) {
+        return 0; /* hires: this frame's upload budget is spent; the texture waits a frame */
+    }
 
     {
         u32 arriba_w = (decrementar_w + 3) & ~3u;
@@ -123,7 +126,7 @@ static int preparar_impl_tmem(int indice_tile, int tlut_modo, int banderas, Info
                                            envolver_t ? ay : ay + decrementar_h - 1);
             }
             e->valido = 1;
-            subir_rect_textura_gs(atlas_tbp, ATLAS_TBW, ax, ay, decodificacion, arriba_w, decrementar_h);
+            gs_upload_texture_rect(atlas_tbp, ATLAS_TBW, ax, ay, decodificacion, arriba_w, decrementar_h);
         }
         estadisticas_tmem.decodificaciones++;
         FIN_PROF(DECODIFICACION_PROF);

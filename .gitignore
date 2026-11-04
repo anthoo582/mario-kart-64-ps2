@@ -1,2 +1,6 @@
 # Cache de Python
 __pycache__/
+build/
+compilaciones/
+.DS_Store
+build

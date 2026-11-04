@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_wario_stadium_vertice
-.incbin "build/ps2/recursos/pistas/wario_stadium/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_wario_stadium_empaquetado
-.incbin "build/ps2/recursos/pistas/wario_stadium/listas_empaquetadas.inc.bin"
-.balign 0x10

@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_big_donut_vertice
-.incbin "build/ps2/recursos/pistas/big_donut/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_big_donut_empaquetado
-.incbin "build/ps2/recursos/pistas/big_donut/listas_empaquetadas.inc.bin"
-.balign 0x10

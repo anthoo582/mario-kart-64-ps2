@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_block_fort_vertice
-.incbin "build/ps2/recursos/pistas/block_fort/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_block_fort_empaquetado
-.incbin "build/ps2/recursos/pistas/block_fort/listas_empaquetadas.inc.bin"
-.balign 0x10

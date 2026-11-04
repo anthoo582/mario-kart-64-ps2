@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_yoshi_valley_vertice
-.incbin "build/ps2/recursos/pistas/yoshi_valley/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_yoshi_valley_empaquetado
-.incbin "build/ps2/recursos/pistas/yoshi_valley/listas_empaquetadas.inc.bin"
-.balign 0x10

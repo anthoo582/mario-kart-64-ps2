@@ -48,7 +48,7 @@ typedef struct {
     /* Caches por vertice */
     u32 gen_cc, gen_proy;
     float cr, cg, cb, ca, automovil, cag, cabina;
-    VerticeGs proy;
+    GsVertex proy;
     float proy_s, proy_t; /* s y t normalizadas, sin multiplicar por 1/w */
     /* (cache) proj ya empaquetado para el GS */
     u128 gif[3] __attribute__((aligned(16)));
@@ -69,7 +69,55 @@ typedef struct {
 #define DERECHA_RECORTE 4
 #define ARRIBA_RECORTE   8
 #define BOT_RECORTE   16
-#define GUARDIA      3.0f
+/* Guard band, in viewports: triangles are clipped only beyond it (the GS scissor does the rest).
+   3x, or less where 3x would leave what the GS can draw: window coordinates (from the
+   framebuffer's top left) above 2047, or primitive coordinates below 0. The window limit is what
+   hangs the GS on real hardware (1080i Hor+ reached x 2752: the GS stopped taking data mid-race).
+   x is worked out per viewport (ws_viewport); y once, in the init. */
+#define GUARDIA_MAX 3.0f
+#define GUARDIA_VENTANA_MAX 2040.0f
+static float guardia_x = GUARDIA_MAX, guardia_y = GUARDIA_MAX;
+
+/* Widescreen (16:9 hires modes) keeps the 4:3 content's proportions instead of stretching it.
+   2D (orthographic projections, rectangles, scissors) is mapped aspect-correct around the centre,
+   but N64 x 0 and 320 stay on the screen edges, so full-width backgrounds, fades and split-screen
+   viewports still fill 16:9. 3D (perspective projections) is drawn aspect-correct inside that
+   wider viewport, which widens the horizontal field of view (Hor+). */
+#ifndef SMK64_WIDESCREEN
+#define SMK64_WIDESCREEN 1
+#endif
+static float ws_widen = 1.0f;   /* display aspect / (4:3) */
+static float ws_scale_x = 1.0f; /* aspect-correct GS pixels per N64 pixel */
+static int ws_ortho;            /* the projection matrix is orthographic */
+static float ws_vp_centre;      /* GS x of the viewport centre (3D) */
+static float ws_vp_half;        /* GS half-width of the viewport, edges kept on the screen edges */
+static float ws_ndc_x = 1.0f;   /* that half-width in viewport half-widths at ws_scale_x (Hor+: 4/3) */
+static float ws_vp_izq, ws_vp_der; /* N64 x of the viewport edges */
+
+/* N64 screen x -> GS x for 2D */
+static inline float ws_x(float sx)
+{
+    if (ws_widen == 1.0f) {
+        return sx * gs_scale_x;
+    }
+    if (sx <= 0.5f) {
+        return sx * ws_scale_x;
+    }
+    if (sx >= 319.5f) {
+        return GS_WIDTH + (sx - 320.0f) * ws_scale_x;
+    }
+    return GS_WIDTH * 0.5f + (sx - 160.0f) * ws_scale_x;
+}
+
+/* N64 screen x -> GS x for viewport and scissor boxes: stretched to the full width. At rest they
+   touch the edges or split the screen in the centre, where this matches ws_x; while the game
+   animates them (race start zoom, winner and split-screen transitions) ws_x would keep them inside
+   the 4:3 part and jump to the edges on the last frame. */
+static inline float ws_x_caja(float sx)
+{
+    return sx * gs_scale_x;
+}
+
 
 static struct {
     uintptr_t seg[16];
@@ -110,7 +158,7 @@ static struct {
 
     int sucio_estado;
     int proporcion_recorte;
-    EstadoGs gs;
+    GsState gs;
     InfoTextura tex;
     int valido_tex;
 } St;
@@ -339,19 +387,21 @@ static void cargar_vertices(const Vtx *orig_, int n, int dst)
         o->gen_cc = 0;
         o->gen_proy = 0;
 
-        gw = GUARDIA * cw;
+        gw = guardia_x * cw;
         recorte = 0;
         if (cz < -cw) recorte |= RECORTE_CERCA;
         if (cx < -gw) recorte |= IZQUIERDA_RECORTE;
         if (cx > gw) recorte |= DERECHA_RECORTE;
+        gw = guardia_y * cw;
         if (cy > gw) recorte |= ARRIBA_RECORTE;
         if (cy < -gw) recorte |= BOT_RECORTE;
         o->clip = recorte;
-        /* El RSP recorta a proporcion_recorte veces la vista */
-        gw = proporcion * cw;
+        /* El RSP recorta a proporcion_recorte veces la vista (in widescreen the view is wider) */
+        gw = proporcion * ws_ndc_x * cw;
         recorte &= RECORTE_CERCA;
         if (cx < -gw) recorte |= IZQUIERDA_RECORTE;
         if (cx > gw) recorte |= DERECHA_RECORTE;
+        gw = proporcion * cw;
         if (cy > gw) recorte |= ARRIBA_RECORTE;
         if (cy < -gw) recorte |= BOT_RECORTE;
         o->rej = recorte;
@@ -483,6 +533,60 @@ static int mezcla_alpha;
    pixeles y cada uno mezclado con alfa: en promedio cubre alfa^2. Se usa ese promedio. */
 static int alfa_dither;
 
+/* GS extent of the viewport. Called when it changes: the clip ratio rejection in cargar_vertices
+   uses ws_ndc_x before anything is drawn. */
+static void ws_viewport(void)
+{
+    float hw = St.escala_vp[0] < 0 ? -St.escala_vp[0] : St.escala_vp[0];
+    float l = ws_x_caja(St.vp_trans[0] - hw), r = ws_x_caja(St.vp_trans[0] + hw);
+
+    ws_vp_izq = St.vp_trans[0] - hw;
+    ws_vp_der = St.vp_trans[0] + hw;
+    ws_vp_centre = (l + r) * 0.5f;
+    ws_vp_half = (r - l) * 0.5f;
+    ws_ndc_x = hw > 0.0f ? ws_vp_half / (hw * ws_scale_x) : 1.0f;
+    ws_ndc_x = ws_ndc_x < 1.0f ? 1.0f : ws_ndc_x;
+
+    /* GS x = centre + ndc * hw * ws_scale_x; never closer than the screen edges (ws_ndc_x), which
+       are inside the limits */
+    guardia_x = GUARDIA_MAX;
+    if (hw > 0.0f) {
+        float u = hw * ws_scale_x;
+        float der = (GUARDIA_VENTANA_MAX - ws_vp_centre) / u;
+        float izq = (ws_vp_centre + (2048.0f - 8.0f - GS_WIDTH / 2)) / u;
+
+        guardia_x = der < guardia_x ? der : guardia_x;
+        guardia_x = izq < guardia_x ? izq : guardia_x;
+        guardia_x = guardia_x < ws_ndc_x ? ws_ndc_x : guardia_x;
+    }
+}
+
+/* N64 screen x -> GS x for orthographic vertices: like ws_x, but what is on the viewport edges
+   stays on the edges of its box (ws_x_caja). The sky is a quad that fills the viewport: while the
+   viewport is animated it has to fill the same box as the scissor and the 3D. With full-screen and
+   split-screen viewports the edges are 0, 160 and 320, where this matches ws_x. */
+static inline float ws_x_orto(float sx)
+{
+    if (ws_widen == 1.0f) {
+        return sx * gs_scale_x;
+    }
+    if (sx - ws_vp_izq <= 0.5f && sx - ws_vp_izq >= -0.5f) {
+        return ws_vp_centre - ws_vp_half + (sx - ws_vp_izq) * ws_scale_x;
+    }
+    if (sx - ws_vp_der <= 0.5f && sx - ws_vp_der >= -0.5f) {
+        return ws_vp_centre + ws_vp_half + (sx - ws_vp_der) * ws_scale_x;
+    }
+    return ws_x(sx);
+}
+
+/* Projection type and viewport extent, before a draw */
+static void ws_update(void)
+{
+    /* Orthographic: w does not depend on x, y or z */
+    ws_ortho = St.proy[0][3] == 0.0f && St.proy[1][3] == 0.0f && St.proy[2][3] == 0.0f;
+    ws_viewport();
+}
+
 static u64 reg_tijera(void)
 {
     return GS_SETREG_SCISSOR(St.tijera[0], St.tijera[2] - 1, St.tijera[1], St.tijera[3] - 1);
@@ -491,11 +595,20 @@ static u64 reg_tijera(void)
 /* Triangulos */
 static u64 tri_reg_tijera(void)
 {
-    float sx = GS_ANCHO / 320.0f, sy = GS_ALTO / 240.0f;
+    float sy = gs_scale_y;
     float hw = (St.escala_vp[0] < 0 ? -St.escala_vp[0] : St.escala_vp[0]) * St.proporcion_recorte;
     float hh = (St.escala_vp[1] < 0 ? -St.escala_vp[1] : St.escala_vp[1]) * St.proporcion_recorte;
-    int x0 = (int) ((St.vp_trans[0] - hw) * sx + 0.5f), x1 = (int) ((St.vp_trans[0] + hw) * sx + 0.5f);
+    int x0, x1;
     int y0 = (int) ((St.vp_trans[1] - hh) * sy + 0.5f), y1 = (int) ((St.vp_trans[1] + hh) * sy + 0.5f);
+
+    if (ws_ortho) {
+        x0 = (int) (ws_x_caja(St.vp_trans[0] - hw) + 0.5f);
+        x1 = (int) (ws_x_caja(St.vp_trans[0] + hw) + 0.5f);
+    } else {
+        /* Hor+: the clip ratio applies to the full-width viewport, not to the 4:3 part */
+        x0 = (int) (ws_vp_centre - ws_vp_half * St.proporcion_recorte + 0.5f);
+        x1 = (int) (ws_vp_centre + ws_vp_half * St.proporcion_recorte + 0.5f);
+    }
 
     x0 = x0 > St.tijera[0] ? x0 : St.tijera[0];
     y0 = y0 > St.tijera[1] ? y0 : St.tijera[1];
@@ -534,7 +647,8 @@ static void actualizar_generaciones_vertice(int es_rect)
         float escala_vp[2], vp_trans[2];
         u16 uls, ult, tex_w, tex_h;
         u8 valido_tex, decal, filtro, shifts, shiftt;
-        u8 pad[3];
+        u8 orto;
+        u8 pad[2];
     } sig_proy;
     int cc_cambiado;
 
@@ -559,7 +673,7 @@ static void actualizar_generaciones_vertice(int es_rect)
         memcpy(cs.prim, St.prim, 4);
         memcpy(cs.amb, St.amb, 4);
         cs.lod = St.prim_lod_frac;
-        cs.texturizado = (u8) (St.gs.texturizado | (alfa_dither << 1));
+        cs.texturizado = (u8) (St.gs.textured | (alfa_dither << 1));
         cs.agregar_dividir = (u8) agregar_dividir;
         cs.alpha_tex = (u8) alpha_desde_tex;
         cc_cambiado = !equal_palabras(&cs, &cc_sig, sizeof(cs) / 4);
@@ -598,6 +712,8 @@ static void actualizar_generaciones_vertice(int es_rect)
         ps.escala_vp[1] = St.escala_vp[1];
         ps.vp_trans[0] = St.vp_trans[0];
         ps.vp_trans[1] = St.vp_trans[1];
+        ws_update();
+        ps.orto = (u8) ws_ortho;
         if (cc_cambiado || !equal_palabras(&ps, &sig_proy, sizeof(ps) / 4)) {
             sig_proy = ps;
             if (++gen_proy == 0) {
@@ -616,7 +732,7 @@ static int agregar_posible_pasada(void);
 static void construir_impl_estado(int tile, int es_rect);
 
 typedef struct {
-    EstadoGs gs;
+    GsState gs;
     InfoTextura tex;
     float mul_st[2], agregar_st[2], reb[4];
     u32 comprobacion;
@@ -667,7 +783,10 @@ static void construir_estado(int tile, int es_rect)
             periodo_t_reb = r->reb[1];
             reb_inv_s = r->reb[2];
             reb_inv_t = r->reb[3];
-            gs_aplicar_estado(&St.gs);
+            /* Not in the recorded state: otherwise widescreen keeps the projection type the real
+               frame ended on (the HUD's orthographic one) and draws the 3D stretched */
+            ws_update();
+            gs_apply_state(&St.gs);
             St.sucio_estado = es_rect;
             if (r->inc_cc && ++gen_cc == 0) {
                 gen_cc = 1;
@@ -750,7 +869,9 @@ static int preparar_textura_2(int indice_tile, int tlut, int banderas)
     return ultimo_prep.ok;
 }
 
-#ifdef SMK64_PROF
+#if defined(SMK64_PROF) || defined(SMK64_MEDIDOR)
+/* Inside construir_impl_estado: 0 combiner analysis, 1 afecta_rgb_texel, 2 agregar_posible_pasada,
+   3 gs_apply_state, 4 vertex generations */
 u32 prof_x[8], prof_xn[8], prof_xt;
 #define EMPEZAR_PX() (prof_xt = ahora_prof())
 #define FIN_PX(i) (prof_x[i] += ahora_prof() - prof_xt, prof_xn[i]++)
@@ -760,7 +881,7 @@ u32 prof_x[8], prof_xn[8], prof_xt;
 #endif
 static void construir_impl_estado(int tile, int es_rect)
 {
-    EstadoGs *st = &St.gs;
+    GsState *st = &St.gs;
     u32 l = St.om_l;
     int ciclo = (St.om_h >> G_MDSFT_CYCLETYPE) & 3;
     int zcmp = (l & Z_CMP) && (St.geom & G_ZBUFFER) && !es_rect;
@@ -851,9 +972,9 @@ static void construir_impl_estado(int tile, int es_rect)
         ate = 1;
         aref = 1;
     }
-    st->prueba = GS_SETREG_TEST(ate, ate ? 5 : 1, aref, 0, 0, 0, 1, zcmp ? 2 : 1);
-    st->zbuf = gs_valor_zbuf(zupd);
-    st->tijera = es_rect ? reg_tijera() : tri_reg_tijera();
+    st->test = GS_SETREG_TEST(ate, ate ? 5 : 1, aref, 0, 0, 0, 1, zcmp ? 2 : 1);
+    st->zbuf = gs_zbuf_value(zupd);
+    st->scissor = es_rect ? reg_tijera() : tri_reg_tijera();
     st->fogcol = (u64) St.fogc[0] | ((u64) St.fogc[1] << 8) | ((u64) St.fogc[2] << 16);
 
     filter = FILTRADO_TEXTURAS && ((St.om_h >> G_MDSFT_TEXTFILT) & 3) != 0 && ciclo != (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
@@ -907,14 +1028,14 @@ static void construir_impl_estado(int tile, int es_rect)
             reb_inv_t = St.tex.height ? St.tex.maceta_h / (float) St.tex.height : 0.0f;
         }
     }
-    st->texturizado = prim_texturizado && St.valido_tex;
+    st->textured = prim_texturizado && St.valido_tex;
     DIAG_CC_ESTADO(es_rect, prim_texturizado && !afecta_rgb_texel() && alpha_desde_tex);
-    st->prim = (1 << 3)  | (st->texturizado ? (1 << 4) : 0) | (niebla_en ? (1 << 5) : 0) |
+    st->prim = (1 << 3)  | (st->textured ? (1 << 4) : 0) | (niebla_en ? (1 << 5) : 0) |
                (mezcla_alpha ? (1 << 6) : 0);
     /* Los triangulos 3D llevan Gouraud, niebla o transparencias; el HUD, los menus y el texto son rectangulos. */
     st->dither = !es_rect && ciclo < (G_CYC_COPY >> G_MDSFT_CYCLETYPE);
     EMPEZAR_PX();
-    gs_aplicar_estado(st);
+    gs_apply_state(st);
     FIN_PX(3);
     St.sucio_estado = es_rect;
     EMPEZAR_PX();

@@ -279,15 +279,15 @@ static void ejecutar_dl(Gfx *dl)
                 St.profundidad_prim = w1;
                 break;
             case G_SETSCISSOR: {
-                float sx = GS_ANCHO / 320.0f, sy = GS_ALTO / 240.0f;
+                float sy = gs_scale_y;
                 int viejo[4] = { St.tijera[0], St.tijera[1], St.tijera[2], St.tijera[3] };
 
-                St.tijera[0] = (int) (((w0 >> 12) & 0xFFF) * 0.25f * sx);
+                St.tijera[0] = (int) ws_x_caja(((w0 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[1] = (int) ((w0 & 0xFFF) * 0.25f * sy);
-                St.tijera[2] = (int) (((w1 >> 12) & 0xFFF) * 0.25f * sx);
+                St.tijera[2] = (int) ws_x_caja(((w1 >> 12) & 0xFFF) * 0.25f);
                 St.tijera[3] = (int) ((w1 & 0xFFF) * 0.25f * sy);
-                if (St.tijera[2] > GS_ANCHO) St.tijera[2] = GS_ANCHO;
-                if (St.tijera[3] > GS_ALTO) St.tijera[3] = GS_ALTO;
+                if (St.tijera[2] > GS_WIDTH) St.tijera[2] = GS_WIDTH;
+                if (St.tijera[3] > GS_HEIGHT) St.tijera[3] = GS_HEIGHT;
                 if (St.tijera[2] <= St.tijera[0]) St.tijera[2] = St.tijera[0] + 1;
                 if (St.tijera[3] <= St.tijera[1]) St.tijera[3] = St.tijera[1] + 1;
 #ifdef SMK64_DEV
@@ -390,7 +390,14 @@ void inicializar_renderizador(void)
     /* Valores por defecto del microcodigo */
     St.mirada[0][0] = 127;
     St.mirada[1][1] = 127;
-    gs_inicializar();
+    gs_init();
+    /* 720p and 1080i are 16:9 */
+    ws_widen = (SMK64_WIDESCREEN && gs_hires()) ? (16.0f / 9.0f) / (4.0f / 3.0f) : 1.0f;
+    ws_scale_x = gs_scale_x / ws_widen;
+    /* y: viewports are at most the screen height, centred at most H/2 from the top; hires bands
+       shift window y up by under H, so y within -(2040 - H) .. 2040 is safe both ways */
+    guardia_y = (GUARDIA_VENTANA_MAX - GS_HEIGHT) / (GS_HEIGHT / 2) + 1.0f;
+    guardia_y = guardia_y > GUARDIA_MAX ? GUARDIA_MAX : guardia_y;
     tmem_inicializar();
 }
 
@@ -418,10 +425,11 @@ static void reiniciar_estado_rsp(void)
     St.vp_trans[0] = 160.0f;
     St.vp_trans[1] = 120.0f;
     St.vp_trans[2] = 511.0f;
+    ws_viewport();
     St.tijera[0] = 0;
     St.tijera[1] = 0;
-    St.tijera[2] = GS_ANCHO;
-    St.tijera[3] = GS_ALTO;
+    St.tijera[2] = GS_WIDTH;
+    St.tijera[3] = GS_HEIGHT;
     St.sucio_estado = 1;
 }
 
@@ -442,9 +450,9 @@ static void dibujar_overlay_dev(void)
                                    { 0xFF, 0, 0 }, { 0, 0xFF, 0 }, { 0, 0, 0xFF }, { 0x20, 0x20, 0x20 } };
     int i;
 
-    gs_rellenar_rectangulo(0, 0, 16, 16, 0xFF, 0x00, 0xFF);
+    gs_fill_rect(0, 0, 16, 16, 0xFF, 0x00, 0xFF);
     for (i = 0; i < 8; i++) {
-        gs_rellenar_rectangulo(i * 80, GS_ALTO - 24, i * 80 + 80, GS_ALTO, barras[i][0], barras[i][1], barras[i][2]);
+        gs_fill_rect(i * 80, GS_HEIGHT - 24, i * 80 + 80, GS_HEIGHT, barras[i][0], barras[i][1], barras[i][2]);
     }
 }
 #else
@@ -466,7 +474,7 @@ static inline u32 ema(u32 avg, u32 muestra)
 static void cancelar_gancho_interp(void)
 {
     interp_planned = 0;
-    redirigir_paquete_gs(REAL_PAQUETE_GS, s_disp ^ 1);
+    gs_retarget_packet(GS_PACKET_REAL, s_disp ^ 1);
 }
 
 /* Se dibuja el intermedio si */
@@ -474,8 +482,14 @@ static void cancelar_gancho_interp(void)
 #define CICLOS_FRAME         (294912u * 100u / 3u)
 /* Margenes amplios: en una PS2 real el costo de un frame varia mas que en el emulador y un
    intermedio que no entra atrasa la imagen real un retrazo entero (un tiron visible). */
-#define MARGEN_INTERP_EN     (294912u * 8u)
-#define APAGADO_MARGEN_INTERP    (294912u * 6u)
+#ifndef MARGEN_INTERP_EN_MS
+#define MARGEN_INTERP_EN_MS 8
+#endif
+#ifndef APAGADO_MARGEN_INTERP_MS
+#define APAGADO_MARGEN_INTERP_MS 6
+#endif
+#define MARGEN_INTERP_EN     (294912u * MARGEN_INTERP_EN_MS)
+#define APAGADO_MARGEN_INTERP    (294912u * APAGADO_MARGEN_INTERP_MS)
 static u32 apagado_libre, libre_en; /* ciclos libres por frame, sin y con intermedio */
 static u32 proporcion_interp = 176;
 static u32 samp_total, inactivo_samp;

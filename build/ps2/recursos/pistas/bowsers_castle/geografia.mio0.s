@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_bowsers_castle_vertice
-.incbin "build/ps2/recursos/pistas/bowsers_castle/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_bowsers_castle_empaquetado
-.incbin "build/ps2/recursos/pistas/bowsers_castle/listas_empaquetadas.inc.bin"
-.balign 0x10

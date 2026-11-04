@@ -1,9 +1,0 @@
-.include "macros.inc"
-.section .data
-.balign 4
-glabel d_circuito_moo_moo_farm_vertice
-.incbin "build/ps2/recursos/pistas/moo_moo_farm/vertices.inc.mio0"
-.balign 4
-glabel d_circuito_moo_moo_farm_empaquetado
-.incbin "build/ps2/recursos/pistas/moo_moo_farm/listas_empaquetadas.inc.bin"
-.balign 0x10

@@ -57,15 +57,10 @@ void copiar_pantalla_gigante(int x, int y, int w, int h, const void *objetivo)
 
 static u32 vram_ranura(int i)
 {
-    return gs_vram_fin_texturas() + (u32) i * BYTES_RANURA;
+    return gs_vram_texture_end() + (u32) i * BYTES_RANURA;
 }
 
-static float a_fb_y(int y)
-{
-    return (float) y * GS_ALTO / 240.0f;
-}
-
-void empezar_frame_pantallas_gigantes(void)
+static void copiar_pendientes(void)
 {
     int i;
 
@@ -76,9 +71,24 @@ void empezar_frame_pantallas_gigantes(void)
             continue;
         }
         s->pendiente = 0;
-        s->valido = 1;
-        gs_copiar_desde_pantalla((float) (s->x * 2), a_fb_y(s->y), (float) (s->w * 2), a_fb_y(s->y + s->h) - a_fb_y(s->y),
-                               vram_ranura(i), s->w, s->h);
+        if (gs_copy_from_screen((float) s->x * gs_scale_x, (float) s->y * gs_scale_y, (float) s->w * gs_scale_x,
+                                (float) s->h * gs_scale_y, vram_ranura(i), s->w, s->h)) {
+            s->valido = 1;
+        }
+    }
+}
+
+void empezar_frame_pantallas_gigantes(void)
+{
+    if (!gs_hires()) {
+        copiar_pendientes();
+    }
+}
+
+void terminar_frame_pantallas_gigantes(void)
+{
+    if (gs_hires()) {
+        copiar_pendientes();
     }
 }
 

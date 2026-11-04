@@ -18,6 +18,11 @@ typedef struct {
 void registrar_bucle_inactivo(u32 empezar, u32 largo);
 void leer_muestras_cpu(MuestrasCpu *salida);
 void cantidades_muestreador_ps2(u32 *total, u32 *inactivo);
+#ifdef SMK64_MEDIDOR
+/* Meter profile page: restart, and the n hottest 128-byte code blocks (busy samples only) */
+void perfil_pantalla_empezar(void);
+int perfil_pantalla_top(u32 *dir, u32 *muestras, int n, u32 *total, u32 *kernel);
+#endif
 
 /* retrazo_vertical.c: VBlank, temporizadores y presentacion de frames */
 void inicializar_retrazo(void);

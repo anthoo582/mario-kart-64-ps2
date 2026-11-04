@@ -24,7 +24,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
         interp_feedback(ultimo_periodo);
         ultimo_vblank_tarea = vb;
     }
-    s_disp = buffer_mostrado_gs();
+    s_disp = gs_displayed_buffer();
     candidato = candidato_interp();
     interp_planned = interp_decide();
     serie_tarea++;
@@ -45,10 +45,10 @@ void ejecutar_tarea_graficos(Gfx *dl)
     pasada_para_estado = interp_planned ? 1 : 0;
     rec_n_estado = 0;
     ok_rec_estado = 1;
-    subidas_capturar_gs(interp_planned);
+    gs_capture_uploads(interp_planned);
     /* Con intermedio, N va al buffer que ahora esta en pantalla */
-    empezar_paquete_gs(REAL_PAQUETE_GS, interp_planned ? s_disp : s_disp ^ 1, 0);
-    fijar_gancho_desborde_gs(interp_planned ? cancelar_gancho_interp : NULL);
+    gs_begin_packet(GS_PACKET_REAL, interp_planned ? s_disp : s_disp ^ 1, 0);
+    gs_set_overflow_hook(interp_planned ? cancelar_gancho_interp : NULL);
     tmem_empezar_frame();
     empezar_frame_pantallas_gigantes();
     reiniciar_estado_rsp();
@@ -58,7 +58,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
     }
 #endif
 #ifdef SMK64_DEV_BLUE
-    gs_rellenar_rectangulo(0, 0, GS_ANCHO, GS_ALTO, 0, 0, 0xC0);
+    gs_fill_rect(0, 0, GS_WIDTH, GS_HEIGHT, 0, 0, 0xC0);
 #endif
 #ifdef SMK64_DEV
     {
@@ -87,6 +87,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_DEV
     diag_frame = 0;
 #endif
+    terminar_frame_pantallas_gigantes();
 #ifdef SMK64_DEV
     if (dl_volcado != NULL) {
         char nombre[32];
@@ -100,9 +101,9 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_MEDIDOR
     medidor_dibujar();
 #endif
-    meta_paquete_gs(negro);
-    fijar_gancho_desborde_gs(NULL);
-    subidas_capturar_gs(0);
+    gs_finish_packet(negro);
+    gs_set_overflow_hook(NULL);
+    gs_capture_uploads(0);
     s_recording = 0;
     if (desborde_descarte) {
         mtx_tab[act_mtx].valido = 0;
@@ -110,10 +111,10 @@ void ejecutar_tarea_graficos(Gfx *dl)
     t_real = leer_contador_ciclos() - t0 - (ps2_audio_tarea_ciclos - audio0);
     real_costo = ema(real_costo, t_real);
     ultimo_real = t_real;
-    if (interp_planned && (dl_corte || tmem_pasada_fallido() || gs_capturar_fallido() || !mtx_tab[act_mtx].valido)) {
+    if (interp_planned && (dl_corte || tmem_pasada_fallido() || gs_capture_failed() || !mtx_tab[act_mtx].valido)) {
         interp_planned = 0;
 #ifdef SMK64_PROF
-        por_que_interp[4 + (tmem_pasada_fallido() ? 0 : gs_capturar_fallido() ? 1 : 2)]++;
+        por_que_interp[4 + (tmem_pasada_fallido() ? 0 : gs_capture_failed() ? 1 : 2)]++;
 #endif
     }
 
@@ -128,8 +129,8 @@ void ejecutar_tarea_graficos(Gfx *dl)
         pos_descarte = 0;
         reiniciar_conteos(&mtx_cnt_interp);
         pasada_empezar_tmem(REPETICION_PASADA_TMEM);
-        empezar_paquete_gs(INTERP_PAQUETE_GS, s_disp ^ 1, GS_PAQUETE_SIN_ENVIO | GS_PAQUETE_CONSERVAR_ESTADISTICAS);
-        gs_emitir_capturado_subidas();
+        gs_begin_packet(GS_PACKET_INTERP, s_disp ^ 1, GS_PACKET_NO_PARTIAL | GS_PACKET_KEEP_STATS);
+        gs_emit_captured_uploads();
         reiniciar_estado_rsp();
 #ifndef SMK64_DEV_NODL
         ejecutar_dl(dl);
@@ -138,12 +139,12 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_MEDIDOR
         medidor_dibujar();
 #endif
-        meta_paquete_gs(negro);
-        if (tmem_pasada_fallido() || interp_abort || gs_paquete_fallido(INTERP_PAQUETE_GS) || pos_descarte != cantidad_descarte) {
+        gs_finish_packet(negro);
+        if (tmem_pasada_fallido() || interp_abort || gs_packet_failed(GS_PACKET_INTERP) || pos_descarte != cantidad_descarte) {
             interp_planned = 0;
             interp_salteado++;
 #ifdef SMK64_PROF
-            por_que_interp[tmem_pasada_fallido() ? 0 : interp_abort ? 1 : gs_paquete_fallido(INTERP_PAQUETE_GS) ? 2 : 3]++;
+            por_que_interp[tmem_pasada_fallido() ? 0 : interp_abort ? 1 : gs_packet_failed(GS_PACKET_INTERP) ? 2 : 3]++;
 #endif
         }
         pasada_empezar_tmem(NORMAL_PASADA_TMEM);
@@ -166,13 +167,13 @@ void ejecutar_tarea_graficos(Gfx *dl)
 #ifdef SMK64_PROF
         u32 vb_i0 = contador_vblank(), vb_i1, c_i = leer_contador_ciclos();
 #endif
-        mostrar_paquete_gs(INTERP_PAQUETE_GS);
+        gs_present_packet(GS_PACKET_INTERP);
         interp_frames++;
 #ifdef SMK64_MEDIDOR
         medidor_frame_intermedio();
 #endif
 #ifndef SMK64_DEV_ONLYINTERP
-        mostrar_paquete_gs(REAL_PAQUETE_GS); /* se muestra un retrazo despues de I */
+        gs_present_packet(GS_PACKET_REAL); /* se muestra un retrazo despues de I */
 #else
         /* Depuracion */
         paquete_soltado = 1;
@@ -192,8 +193,8 @@ void ejecutar_tarea_graficos(Gfx *dl)
         }
 #endif
     } else {
-        redirigir_paquete_gs(REAL_PAQUETE_GS, s_disp ^ 1);
-        mostrar_paquete_gs(REAL_PAQUETE_GS);
+        gs_retarget_packet(GS_PACKET_REAL, s_disp ^ 1);
+        gs_present_packet(GS_PACKET_REAL);
     }
     cambios_modo_interp += (ultimo_usado_interp != 0) != (interp_planned != 0);
     ultimo_usado_interp = interp_planned;
@@ -293,7 +294,7 @@ void ejecutar_tarea_graficos(Gfx *dl)
         rend_registro_ps2("60 FPS: %s, intermedios %u, omitidos %u, costo real %u us intermedio %u us, cambios de pantalla %u, "
                      "libre %u us sin intermedio y %u us con el",
                 interp_user ? "si" : "no", (unsigned) interp_frames, (unsigned) interp_salteado,
-                (unsigned) (real_costo / 295), (unsigned) (interp_costo / 295), (unsigned) estadisticas_gs.volteos,
+                (unsigned) (real_costo / 295), (unsigned) (interp_costo / 295), (unsigned) gs_stats.flips,
                 (unsigned) (apagado_libre / 295), (unsigned) (libre_en / 295));
 #ifdef SMK64_PROF
         rend_registro_ps2("60 FPS descartes: I tex %u recorrido %u lleno %u cull %u; N desalojo %u subidas %u matrices %u",
@@ -319,15 +320,15 @@ void ejecutar_tarea_graficos(Gfx *dl)
             subidas_ci = golpes_ci = 0;
         }
         rend_registro_ps2("imagenes: %u de 1 retrazo, %u de 2, %u de 3, %u de 4 o mas; cambios 60/30 %u",
-                (unsigned) estadisticas_gs.mantenido[0], (unsigned) estadisticas_gs.mantenido[1],
-                (unsigned) estadisticas_gs.mantenido[2], (unsigned) estadisticas_gs.mantenido[3], (unsigned) cambios_modo_interp);
+                (unsigned) gs_stats.held[0], (unsigned) gs_stats.held[1],
+                (unsigned) gs_stats.held[2], (unsigned) gs_stats.held[3], (unsigned) cambios_modo_interp);
         cambios_modo_interp = 0;
-        memset(estadisticas_gs.mantenido, 0, sizeof(estadisticas_gs.mantenido));
+        memset(gs_stats.held, 0, sizeof(gs_stats.held));
         suma_periodos = 0;
         rend_registro_ps2("frame %u estado %d: tris %u rect %u subidas %u (%u KB) cache %u/%u paquete %u KB", (unsigned) s_frame,
-                (int) estado_juego, (unsigned) estadisticas_gs.triangulos, (unsigned) estadisticas_gs.sprites,
-                (unsigned) estadisticas_gs.subidas, (unsigned) (estadisticas_gs.bytes_subidos / 1024), (unsigned) estadisticas_tmem.golpes,
-                (unsigned) estadisticas_tmem.decodificaciones, (unsigned) (estadisticas_gs.bytes_paquete / 1024));
+                (int) estado_juego, (unsigned) gs_stats.triangles, (unsigned) gs_stats.sprites,
+                (unsigned) gs_stats.uploads, (unsigned) (gs_stats.upload_bytes / 1024), (unsigned) estadisticas_tmem.golpes,
+                (unsigned) estadisticas_tmem.decodificaciones, (unsigned) (gs_stats.packet_bytes / 1024));
 #ifdef SMK64_DEV
         {
             extern s32 seleccion_menu;
@@ -369,20 +370,29 @@ void ejecutar_tarea_graficos(Gfx *dl)
 
 #ifdef SMK64_DEV
     if (captura_pendiente_guion() != NULL) {
-        gs_esperar_cambio_buffer();
-        volcar_frame(captura_pendiente_guion(), gs_pantalla_a_ct32() / 256, GS_ANCHO, GS_ALTO, GS_PSM_CT32);
+        gs_wait_flip();
+        if (gs_hires()) {
+            char path[64];
+
+            snprintf(path, sizeof(path), "host:%s.tga", captura_pendiente_guion());
+            bloquear_host();
+            gs_hires_capture(path);
+            desbloquear_host();
+        } else {
+            volcar_frame(captura_pendiente_guion(), gs_screen_to_ct32() / 256, GS_WIDTH, GS_HEIGHT, GS_PSM_CT32);
+        }
         captura_hecha_guion();
     }
 #endif
 #ifdef SMK64_DEV_FRAMEDUMP
     /* Volcados del framebuffer */
-    if (s_frame == 60 || s_frame == 200 || s_frame == 400 || s_frame == 700 || (s_frame % 1500) == 0) {
+    if (!gs_hires() && (s_frame == 60 || s_frame == 200 || s_frame == 400 || s_frame == 700 || (s_frame % 1500) == 0)) {
         char nombre[32];
 
         /* Espera a que el frame este en pantalla y lo guarda. */
-        gs_esperar_cambio_buffer();
+        gs_wait_flip();
         snprintf(nombre, sizeof(nombre), "frame%05u", (unsigned) s_frame);
-        volcar_frame(nombre, gs_vram_en_pantalla() / 256, GS_ANCHO, GS_ALTO, GS_PSM_CT16S);
+        volcar_frame(nombre, gs_vram_on_screen() / 256, GS_WIDTH, GS_HEIGHT, GS_PSM_CT16S);
     }
 #endif
 }

@@ -18,6 +18,7 @@
 #include "carrera/aparicion_jugadores.h"
 #include "audio/externo.h"
 #include "carrera/logica_carrera.h"
+#include "entrada/vibracion.h"
 #include "graficos/cielo_y_pantalla_dividida.h"
 #include "sistema/matematicas_2.h"
 #include "carrera/efectos.h"

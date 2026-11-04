@@ -96,7 +96,7 @@ static void diag_gs(const VtxColor *o, float t, float salida[4])
     int c;
 
     for (c = 0; c < 3; c++) {
-        if (!St.gs.texturizado) {
+        if (!St.gs.textured) {
             salida[c] = diag_sat(rgb[c] / 255.0f);
         } else {
             float tex = diag_blanco ? 1.0f : t;
@@ -105,7 +105,7 @@ static void diag_gs(const VtxColor *o, float t, float salida[4])
             salida[c] = diag_sat(tex * diag_sat(rgb[c] / 128.0f) + suma);
         }
     }
-    salida[3] = diag_sat((St.gs.texturizado && alpha_desde_tex ? t : 1.0f) * diag_sat(o->a / 128.0f));
+    salida[3] = diag_sat((St.gs.textured && alpha_desde_tex ? t : 1.0f) * diag_sat(o->a / 128.0f));
 }
 
 static void diag_combinador(const u8 sh[4], const struct VtxColor *o)
@@ -116,7 +116,7 @@ static void diag_combinador(const u8 sh[4], const struct VtxColor *o)
     u32 prim, amb, clave;
     int i, k;
 
-    if (n_vistos >= 512 || (!St.gs.texturizado && !prim_texturizado)) {
+    if (n_vistos >= 512 || (!St.gs.textured && !prim_texturizado)) {
         return;
     }
     memcpy(&prim, St.prim, 4);
@@ -153,7 +153,7 @@ static void diag_combinador(const u8 sh[4], const struct VtxColor *o)
                       "tex %d fmt %d/%d timg %08x t %.1f exacto %.2f %.2f %.2f %.2f gs %.2f %.2f %.2f %.2f omL %08x",
                       (unsigned) St.combinacion0, (unsigned) St.combinacion1, St.prim[0], St.prim[1], St.prim[2], St.prim[3],
                       St.amb[0], St.amb[1], St.amb[2], St.amb[3], sh[0], sh[1], sh[2], sh[3], diag_es_rect, diag_blanco,
-                      St.gs.texturizado, t->fmt, t->siz, (unsigned) diag_timg_seg, (double) sondas[k], (double) e[0],
+                      St.gs.textured, t->fmt, t->siz, (unsigned) diag_timg_seg, (double) sondas[k], (double) e[0],
                       (double) e[1], (double) e[2], (double) e[3], (double) g[0], (double) g[1], (double) g[2], (double) g[3],
                       (unsigned) St.om_l);
             return;

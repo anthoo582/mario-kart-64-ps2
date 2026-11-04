@@ -13,7 +13,7 @@ static void combinar_color(const u8 sombreado[4], VtxColor *o)
     colores_cc(&col);
     combinador_combinar(&s_cc, &col, sombreado, cc);
     o->ar = o->ag = o->ab = 0.0f;
-    if (St.gs.texturizado) {
+    if (St.gs.textured) {
         if (agregar_dividir && cc[0].m >= -0.002f && cc[1].m >= -0.002f && cc[2].m >= -0.002f) {
             o->r = cc[0].m * 128.0f;
             o->g = cc[1].m * 128.0f;
@@ -48,18 +48,18 @@ static void combinar_color(const u8 sombreado[4], VtxColor *o)
 static int agregar_eval_pasada(void)
 {
     static const u8 probes[2][4] = { { 0, 0, 0, 0 }, { 255, 255, 255, 255 } };
-    int guardado_texturizado = St.gs.texturizado;
+    int guardado_texturizado = St.gs.textured;
     int i, posible = 0;
 
     /* Se llama desde construir_estado antes de fijar St.gs.textured */
-    St.gs.texturizado = 1;
+    St.gs.textured = 1;
     for (i = 0; i < 2 && !posible; i++) {
         VtxColor c;
 
         combinar_color(probes[i], &c);
         posible = c.ar >= 0.5f || c.ag >= 0.5f || c.ab >= 0.5f;
     }
-    St.gs.texturizado = guardado_texturizado;
+    St.gs.textured = guardado_texturizado;
     return posible;
 }
 
@@ -142,10 +142,10 @@ static float dist_plano(const VerticeRecorte *v, int plano)
 {
     switch (plano) {
         case RECORTE_CERCA: return v->z + v->w;
-        case IZQUIERDA_RECORTE: return v->x + GUARDIA * v->w;
-        case DERECHA_RECORTE: return GUARDIA * v->w - v->x;
-        case ARRIBA_RECORTE: return GUARDIA * v->w - v->y;
-        default: return v->y + GUARDIA * v->w;
+        case IZQUIERDA_RECORTE: return v->x + guardia_x * v->w;
+        case DERECHA_RECORTE: return guardia_x * v->w - v->x;
+        case ARRIBA_RECORTE: return guardia_y * v->w - v->y;
+        default: return v->y + guardia_y * v->w;
     }
 }
 
@@ -183,15 +183,15 @@ static inline float rapido_floor(float x)
 }
 
 /* Proyeccion de un vertice ya combinado */
-static inline void proyectar_wi(const VerticeRecorte *c, VerticeGs *o, float *sn, float *tn, float wi)
+static inline void proyectar_wi(const VerticeRecorte *c, GsVertex *o, float *sn, float *tn, float wi)
 {
     float xn = c->x * wi, yn = c->y * wi, zn = c->z * wi;
     float sx = xn * St.escala_vp[0] + St.vp_trans[0];
     float sy = -yn * St.escala_vp[1] + St.vp_trans[1];
     float zf = __builtin_fminf(__builtin_fmaxf((1.0f - zn) * 0.5f, 0.0f), 1.0f);
 
-    o->x = sx * (GS_ANCHO / 320.0f);
-    o->y = sy * (GS_ALTO / 240.0f);
+    o->x = ws_ortho ? ws_x_orto(sx) : ws_vp_centre + (sx - St.vp_trans[0]) * ws_scale_x;
+    o->y = sy * gs_scale_y;
     o->z = (u32) (s32) (zf * 16777000.0f) + (decal ? 1024 : 0); /* zf en [0, 1]: cabe en s32 */
     if (St.valido_tex) {
         float s = c->s * mul_st[0] + agregar_st[0];
@@ -211,10 +211,10 @@ static inline void proyectar_wi(const VerticeRecorte *c, VerticeGs *o, float *sn
     o->g = limitar_u8(c->g);
     o->b = limitar_u8(c->b);
     o->a = limitar_u8(c->a > 128.0f ? 128.0f : c->a);
-    o->niebla = 255 - limitar_u8(c->niebla);
+    o->fog = 255 - limitar_u8(c->niebla);
 }
 
-static void proyectar(const VerticeRecorte *c, VerticeGs *o, float *sn, float *tn)
+static void proyectar(const VerticeRecorte *c, GsVertex *o, float *sn, float *tn)
 {
     proyectar_wi(c, o, sn, tn, (c->w > 1e-5f) ? 1.0f / c->w : 1e5f);
 }
@@ -227,11 +227,11 @@ static void proyeccion_vertice(VerticeRsp *v)
 
         a_vertice_recorte(v, &c);
         proyectar_wi(&c, &v->proy, &v->proy_s, &v->proy_t, (c.w > 1e-5f) ? v->wi : 1e5f);
-        vertice_paquete_gs(&v->proy, v->gif);
+        gs_pack_vertex(&v->proy, v->gif);
         v->agregar_necesitar = c.ar >= 0.5f || c.ag >= 0.5f || c.ab >= 0.5f;
         /* Periodo de la textura en que cae el vertice */
         v->k_s = v->k_t = 0;
-        if (St.gs.texturizado) {
+        if (St.gs.textured) {
             if (St.tex.envoltura_s) {
                 v->k_s = (s16) rapido_floor((v->proy_s - St.tex.origen_s * St.tex.maceta_w_inv) * reb_inv_s);
             }
@@ -244,10 +244,10 @@ static void proyeccion_vertice(VerticeRsp *v)
 }
 
 /* Segunda pasada de m*TEXEL + a */
-static void agregar_pasada_dibujo(const float agregar_color[][3], VerticeGs *salida, int n)
+static void agregar_pasada_dibujo(const float agregar_color[][3], GsVertex *salida, int n)
 {
-    EstadoGs guardado = St.gs;
-    EstadoGs agregar = St.gs;
+    GsState guardado = St.gs;
+    GsState agregar = St.gs;
     InfoTextura blanco;
     int i;
 
@@ -267,9 +267,9 @@ static void agregar_pasada_dibujo(const float agregar_color[][3], VerticeGs *sal
         }
     }
     agregar.alpha = GS_SETREG_ALPHA(0, 2, 0, 1, 0);
-    agregar.zbuf = gs_valor_zbuf(0);
+    agregar.zbuf = gs_zbuf_value(0);
     agregar.prim = (agregar.prim | (1 << 6)) & ~(1u << 5); /* ABE si, FGE no */
-    gs_aplicar_estado(&agregar);
+    gs_apply_state(&agregar);
     for (i = 0; i < n; i++) {
         salida[i].r = limitar_u8(agregar_color[i][0]);
         salida[i].g = limitar_u8(agregar_color[i][1]);
@@ -279,17 +279,17 @@ static void agregar_pasada_dibujo(const float agregar_color[][3], VerticeGs *sal
         }
     }
     for (i = 1; i + 1 < n; i++) {
-        gs_triangulo(&salida[0], &salida[i], &salida[i + 1]);
+        gs_triangle(&salida[0], &salida[i], &salida[i + 1]);
     }
     St.gs = guardado;
     St.sucio_estado = 1;
 }
 
-static void rebase_uv(VerticeGs *salida, const float *sn, const float *tn, int n)
+static void rebase_uv(GsVertex *salida, const float *sn, const float *tn, int n)
 {
     int i;
 
-    if (!St.gs.texturizado || !(St.tex.envoltura_s | St.tex.envoltura_t)) {
+    if (!St.gs.textured || !(St.tex.envoltura_s | St.tex.envoltura_t)) {
         return;
     }
     if (St.tex.envoltura_s) {
@@ -327,7 +327,7 @@ static void rebase_uv(VerticeGs *salida, const float *sn, const float *tn, int n
 static void dibujar_triangulo(int i0, int i1, int i2)
 {
     VerticeRsp *v0 = &St.v[i0], *v1 = &St.v[i1], *v2 = &St.v[i2];
-    VerticeGs salida[16];
+    GsVertex salida[16];
     float sn[16], tn[16];
     float agregar[16][3];
     int n, i;
@@ -381,20 +381,20 @@ static void dibujar_triangulo(int i0, int i1, int i2)
         proyeccion_vertice(v0);
         proyeccion_vertice(v1);
         proyeccion_vertice(v2);
-        if (St.gs.texturizado) {
+        if (St.gs.textured) {
             k_s = v0->k_s < v1->k_s ? v0->k_s : v1->k_s;
             k_s = k_s < v2->k_s ? k_s : v2->k_s;
             k_t = v0->k_t < v1->k_t ? v0->k_t : v1->k_t;
             k_t = k_t < v2->k_t ? k_t : v2->k_t;
             if ((k_s | k_t | v0->agregar_necesitar | v1->agregar_necesitar | v2->agregar_necesitar) == 0) {
                 EMPEZAR_PROF(EMITIR_PROF);
-                gs_triangulo_empaquetado(v0->gif, v1->gif, v2->gif);
+                gs_triangle_packed(v0->gif, v1->gif, v2->gif);
                 FIN_PROF(EMITIR_PROF);
                 return;
             }
         } else {
             EMPEZAR_PROF(EMITIR_PROF);
-            gs_triangulo_empaquetado(v0->gif, v1->gif, v2->gif);
+            gs_triangle_packed(v0->gif, v1->gif, v2->gif);
             FIN_PROF(EMITIR_PROF);
             return;
         }
@@ -448,8 +448,8 @@ static void dibujar_triangulo(int i0, int i1, int i2)
             registro_kart++;
             registrar("kart tri (%d,%d)(%d,%d)(%d,%d) z%x w%d a%02x rgb%02x%02x%02x tex%d test%x zbuf%x omL%x cc%06x/%08x",
                     (int) salida[0].x, (int) salida[0].y, (int) salida[1].x, (int) salida[1].y, (int) salida[2].x, (int) salida[2].y,
-                    (unsigned) salida[0].z, (int) v0->w, salida[0].a, salida[0].r, salida[0].g, salida[0].b, St.gs.texturizado,
-                    (unsigned) St.gs.prueba, (unsigned) (St.gs.zbuf >> 32), (unsigned) St.om_l, (unsigned) St.combinacion0,
+                    (unsigned) salida[0].z, (int) v0->w, salida[0].a, salida[0].r, salida[0].g, salida[0].b, St.gs.textured,
+                    (unsigned) St.gs.test, (unsigned) (St.gs.zbuf >> 32), (unsigned) St.om_l, (unsigned) St.combinacion0,
                     (unsigned) St.combinacion1);
         }
     }
@@ -466,7 +466,7 @@ static void dibujar_triangulo(int i0, int i1, int i2)
         }
         if ((maxx - minx) * (maxy - miny) > 40000.0f && (s_frame % 120) == 100) {
             registrar("tri GRANDE n%d (%d,%d)-(%d,%d) c%02x%02x%02x a%02x tex%d w %d %d %d clip%x", n, (int) minx,
-                    (int) miny, (int) maxx, (int) maxy, salida[0].r, salida[0].g, salida[0].b, salida[0].a, St.gs.texturizado,
+                    (int) miny, (int) maxx, (int) maxy, salida[0].r, salida[0].g, salida[0].b, salida[0].a, St.gs.textured,
                     (int) v0->w, (int) v1->w, (int) v2->w, o_all);
         }
     }
@@ -474,16 +474,16 @@ static void dibujar_triangulo(int i0, int i1, int i2)
         tris_traza--;
         registrar("tri (%d,%d z%x)(%d,%d)(%d,%d) w%d c%02x%02x%02x a%02x tex%d geom%x omL%x cc%06x/%08x", (int) salida[0].x,
                 (int) salida[0].y, (unsigned) salida[0].z, (int) salida[1].x, (int) salida[1].y, (int) salida[2].x, (int) salida[2].y,
-                (int) v0->w, salida[0].r, salida[0].g, salida[0].b, salida[0].a, St.gs.texturizado, (unsigned) St.geom,
+                (int) v0->w, salida[0].r, salida[0].g, salida[0].b, salida[0].a, St.gs.textured, (unsigned) St.geom,
                 (unsigned) St.om_l, (unsigned) St.combinacion0, (unsigned) St.combinacion1);
     }
 #endif
     EMPEZAR_PROF(EMITIR_PROF);
     for (i = 1; i + 1 < n; i++) {
-        gs_triangulo(&salida[0], &salida[i], &salida[i + 1]);
+        gs_triangle(&salida[0], &salida[i], &salida[i + 1]);
     }
     FIN_PROF(EMITIR_PROF);
-    if (St.gs.texturizado) {
+    if (St.gs.textured) {
         for (i = 0; i < n; i++) {
             if (agregar[i][0] >= 0.5f || agregar[i][1] >= 0.5f || agregar[i][2] >= 0.5f) {
                 agregar_pasada_dibujo(agregar, salida, n);
@@ -511,12 +511,12 @@ static u64 desplazar_clamp_region(u64 c, int ds, int dt)
 
 /* Segunda pasada de m*TEXEL + a para G_TEXRECT: suma a*alfa con la copia blanca de la textura
    (el numero de puesto arcoiris y los textos con (1 - ENV)*TEXEL + PRIM). */
-static void agregar_pasada_rect(int tile, const VerticeGs *a, const VerticeGs *b, const VerticeRecorte *cv)
+static void agregar_pasada_rect(int tile, const GsVertex *a, const GsVertex *b, const VerticeRecorte *cv)
 {
-    EstadoGs guardado = St.gs;
-    EstadoGs agregar = St.gs;
+    GsState guardado = St.gs;
+    GsState agregar = St.gs;
     InfoTextura blanco;
-    VerticeGs a2 = *a, b2 = *b;
+    GsVertex a2 = *a, b2 = *b;
     float ds, dt;
 
     if (!preparar_textura(tile, (St.om_h >> G_MDSFT_TEXTLUT) & 3, BLANCO_RGB_TMEM | TMEM_PARA_RECT, &blanco)) {
@@ -535,7 +535,7 @@ static void agregar_pasada_rect(int tile, const VerticeGs *a, const VerticeGs *b
                                                  (int) (blanco.origen_t - St.tex.origen_t));
     agregar.alpha = GS_SETREG_ALPHA(0, 2, 0, 1, 0);
     agregar.prim = (agregar.prim | (1 << 6)) & ~(1u << 5); /* ABE si, FGE no */
-    gs_aplicar_estado(&agregar);
+    gs_apply_state(&agregar);
     a2.r = b2.r = limitar_u8(cv->ar);
     a2.g = b2.g = limitar_u8(cv->ag);
     a2.b = b2.b = limitar_u8(cv->ab);
@@ -544,7 +544,7 @@ static void agregar_pasada_rect(int tile, const VerticeGs *a, const VerticeGs *b
     }
     gs_sprite(&a2, &b2);
     St.gs = guardado;
-    gs_aplicar_estado(&St.gs);
+    gs_apply_state(&St.gs);
 }
 
 static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
@@ -561,7 +561,7 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     float dtdy = (s16) (halfc & 0xFFFF) / 1024.0f;
     VerticeRsp rv;
     VerticeRecorte cv;
-    VerticeGs a, b;
+    GsVertex a, b;
     const TileRdp *t = &tiles_rdp[tile];
     float s1, t1;
 
@@ -595,18 +595,18 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
     (void) voltear;
 
     memset(&a, 0, sizeof(a));
-    a.x = ulx * (GS_ANCHO / 320.0f);
-    a.y = uly * (GS_ALTO / 240.0f);
+    a.x = ws_x(ulx);
+    a.y = uly * gs_scale_y;
     a.z = 0;
     a.q = 1.0f;
     a.r = limitar_u8(cv.r);
     a.g = limitar_u8(cv.g);
     a.b = limitar_u8(cv.b);
     a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
-    a.niebla = 255;
+    a.fog = 255;
     b = a;
-    b.x = lrx * (GS_ANCHO / 320.0f);
-    b.y = lry * (GS_ALTO / 240.0f);
+    b.x = ws_x(lrx);
+    b.y = lry * gs_scale_y;
     if (St.valido_tex) {
         float mitad = 0.0f;
 
@@ -642,7 +642,7 @@ static void dibujar_texrect(u32 w0, u32 w1, u32 mitad2, u32 halfc, int voltear)
             }
             if (clamp != St.gs.clamp) {
                 St.gs.clamp = clamp;
-                gs_aplicar_estado(&St.gs);
+                gs_apply_state(&St.gs);
             }
         }
         a.s = (s0 - t->uls * 0.25f + mitad + St.tex.origen_s) * St.tex.maceta_w_inv;
@@ -679,7 +679,7 @@ static void dibujar_fillrect(u32 w0, u32 w1)
     }
     if (St.cimg == St.zimg && St.zimg != 0) {
 #ifndef SMK64_DEV_NOZCLEAR
-        gs_limpiar_z();
+        gs_clear_z();
 #endif
         St.sucio_estado = 1;
         return;
@@ -688,13 +688,13 @@ static void dibujar_fillrect(u32 w0, u32 w1)
         u32 c = St.color_relleno >> 16;
         u8 r = ((c >> 11) & 0x1F) << 3, g = ((c >> 6) & 0x1F) << 3, b = ((c >> 1) & 0x1F) << 3;
 
-        gs_rellenar_rectangulo((int) (ulx * GS_ANCHO / 320.0f), (int) (uly * GS_ALTO / 240.0f),
-                     (int) (lrx * GS_ANCHO / 320.0f), (int) (lry * GS_ALTO / 240.0f), r, g, b);
+        gs_fill_rect((int) ws_x(ulx), (int) (uly * GS_HEIGHT / 240.0f), (int) ws_x(lrx), (int) (lry * GS_HEIGHT / 240.0f), r,
+                     g, b);
     } else {
         /* 1/2 ciclos: color del combinador (fundidos, cajas del HUD). */
         VerticeRsp rv;
         VerticeRecorte cv;
-        VerticeGs a, bb;
+        GsVertex a, bb;
         int tex_guardado = St.tex_en;
 
         St.tex_en = 0;
@@ -705,17 +705,17 @@ static void dibujar_fillrect(u32 w0, u32 w1)
     rv.r = rv.g = rv.b = rv.a = 0;
         a_vertice_recorte(&rv, &cv);
         memset(&a, 0, sizeof(a));
-        a.x = ulx * (GS_ANCHO / 320.0f);
-        a.y = uly * (GS_ALTO / 240.0f);
+        a.x = ws_x(ulx);
+        a.y = uly * gs_scale_y;
         a.q = 1.0f;
         a.r = limitar_u8(cv.r);
         a.g = limitar_u8(cv.g);
         a.b = limitar_u8(cv.b);
         a.a = limitar_u8(cv.a > 128.0f ? 128.0f : cv.a);
-        a.niebla = 255;
+        a.fog = 255;
         bb = a;
-        bb.x = lrx * (GS_ANCHO / 320.0f);
-        bb.y = lry * (GS_ALTO / 240.0f);
+        bb.x = ws_x(lrx);
+        bb.y = lry * gs_scale_y;
         gs_sprite(&a, &bb);
     }
     St.sucio_estado = 1;

@@ -147,6 +147,7 @@ static void cmd_movemem(u32 w0, u32 w1)
         St.vp_trans[0] = vp->vtrans[0] / 4.0f;
         St.vp_trans[1] = vp->vtrans[1] / 4.0f;
         St.vp_trans[2] = vp->vtrans[2] / 4.0f;
+        ws_viewport();
         St.sucio_estado = 1; /* el scissor de los triangulos depende del viewport */
 #ifdef SMK64_DEV
         if (diag_frame) {
@@ -242,6 +243,10 @@ static int descartar_dl(u32 w0, u32 w1)
     int vs = (w0 & 0xFFFF) / 40, ve = w1 / 40 - 1;
     int i;
     u8 y_recorte = 0xFF;
+    /* In widescreen the view reaches ws_ndc_x. With 60 FPS the interpolated frame reuses this
+       decision with the camera half a step back: keep a margin so it does not lose what is at the
+       edges of its view. */
+    float my = s_recording ? 1.25f : 1.0f, mx = my * ws_ndc_x;
 
     if (vs < 0 || ve >= MAX_VERTS || ve < vs) {
         return 0;
@@ -250,10 +255,10 @@ static int descartar_dl(u32 w0, u32 w1)
         const VerticeRsp *v = &St.v[i];
         u8 c = 0;
 
-        if (v->x < -v->w) c |= IZQUIERDA_RECORTE;
-        if (v->x > v->w) c |= DERECHA_RECORTE;
-        if (v->y > v->w) c |= ARRIBA_RECORTE;
-        if (v->y < -v->w) c |= BOT_RECORTE;
+        if (v->x < -mx * v->w) c |= IZQUIERDA_RECORTE;
+        if (v->x > mx * v->w) c |= DERECHA_RECORTE;
+        if (v->y > my * v->w) c |= ARRIBA_RECORTE;
+        if (v->y < -my * v->w) c |= BOT_RECORTE;
         if (v->z < -v->w) c |= RECORTE_CERCA;
         y_recorte &= c;
     }
@@ -424,7 +429,7 @@ static DlDescarte *busqueda_dlc(u32 direccion)
 
 static int fuera_dlc(const DlDescarte *e)
 {
-    float r = (float) St.proporcion_recorte * 1.25f;
+    float r = (float) St.proporcion_recorte * 1.25f * ws_ndc_x; /* widescreen: the view is wider */
     u32 all = 0x1F;
     int i;
 
